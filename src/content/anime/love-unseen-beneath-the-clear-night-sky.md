@@ -10,31 +10,31 @@ rating: 7.89
 totalEpisodes: "Unknown"
 episodes:
   - ep: 1
-    title: "The Beginning"
+    title: "An Encounter"
     downloads:
       - source: "Telegram"
         format: "mp4"
         quality: "1080p"
-        size: "203 MB"
-        link: "https://t.me/auraupchannel/29"
+        size: "207 MB"
+        link: "https://t.me/AuraChannelMm/14"
       - source: "Bot"
         format: "mp4"
         quality: "1080p"
-        size: "203 MB"
-        link: "https://t.me/yourbot?start=ep1_1080p"
+        size: "207 MB"
+        link: "https://t.me/onlyforhtoo_bot?start=AAA_a7ba4c02c645"
   - ep: 2
-    title: "The End"
+    title: "Koharu Fuyutsuki"
     downloads:
       - source: "Telegram"
         format: "mp4"
         quality: "1080p"
         size: "203 MB"
-        link: "https://t.me/auraupchannel/30"
+        link: "https://t.me/AuraChannelMm/15"
       - source: "Bot"
         format: "mp4"
         quality: "1080p"
         size: "203 MB"
-        link: "https://t.me/yourbot?start=ep1_1080p"
+        link: "https://t.me/onlyforhtoo_bot?start=AABB09af59cd5bc4"
 ---
 
 "လောကကြီးကနေ ပုန်းကွယ်ချင်နေသူနဲ့ လောကကြီးကို မမြင်ရတဲ့သူတို့ရဲ့  တွေ့ဆုံခြင်း..."
