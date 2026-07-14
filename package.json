@@ -1,17 +1,14 @@
 {
-  "name": "aura_channel",
+  "name": "anime-catalog",
   "type": "module",
-  "version": "0.0.1",
-  "engines": {
-    "node": ">=22.12.0"
-  },
+  "version": "1.0.0",
   "scripts": {
     "dev": "astro dev",
+    "start": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "^7.0.9"
+    "astro": "^4.16.0"
   }
 }

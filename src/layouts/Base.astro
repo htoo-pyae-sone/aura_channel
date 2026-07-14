@@ -1,0 +1,50 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'မြန်မာစာတန်းထိုး Anime များကို ရှာဖွေ ကြည့်ရှုနိုင်ပါပြီ။' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="my">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">AURA&nbsp;Channel</span>
+      </a>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-content">
+        <div class="footer-nav">
+          <a href="/about" class="footer-nav-link">About Us</a>
+          <a href="/donate" class="footer-nav-link">Donate</a>
+          <a href="/terms" class="footer-nav-link">Terms & Policies</a>
+        </div>
+
+        <p class="footer-disclaimer">
+          <strong>Disclaimer:</strong> This site does not store any files on its server. All contents are provided by non-affiliated third parties.
+        </p>
+
+        <div class="footer-bottom">
+          <span class="copyright">&copy; {new Date().getFullYear()} AURA Channel. All rights reserved. <span style="opacity: 0.5; font-size: 0.8em; margin-left: 0.5rem;">v1.0.0</span></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

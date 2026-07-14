@@ -1,0 +1,123 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('anime');
+  return entries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const {
+  title,
+  titleNative,
+  poster,
+  genres,
+  type,
+  year,
+  status,
+  rating,
+  totalEpisodes,
+  episodes,
+} = entry.data;
+const epValue =
+  typeof totalEpisodes === 'number' ? `${totalEpisodes} EP` : totalEpisodes || null;
+
+const formatLabel = { srt: 'SRT', ass: 'ASS' };
+---
+
+<Base title={`${title} — AURA Channel`}>
+  <article class="detail">
+    <div class="detail-poster-wrap">
+      <img class="detail-poster" src={poster} alt={`${title} cover art`} />
+      {rating && <span class="rating-badge rating-badge-lg">★ {rating.toFixed(1)}</span>}
+      {epValue && (
+        <span class="episode-badge episode-badge-lg">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="1.5" y="3.5" width="13" height="9" rx="1.3" stroke="currentColor" stroke-width="1.3" />
+            <path d="M6.5 6.2 10 8l-3.5 1.8V6.2Z" fill="currentColor" />
+          </svg>
+          {epValue}
+        </span>
+      )}
+      {status && (
+        <span class={`status-badge status-badge-lg status-${status.toLowerCase()}`}>{status}</span>
+      )}
+    </div>
+
+    <div>
+      <a class="back-link" href="/">&larr; Back</a>
+
+      <p class="detail-eyebrow">
+        {type}
+        {year ? ` · ${year}` : ''}
+        {status ? ` · ${status}` : ''}
+      </p>
+      <h1 class="detail-title">{title}</h1>
+      {titleNative && <p class="detail-native">{titleNative}</p>}
+
+      <ul class="genre-tags">
+        {genres.map((g) => <li>{g}</li>)}
+      </ul>
+
+      <div class="synopsis">
+        <Content />
+      </div>
+
+      {episodes && episodes.length > 0 && (
+        <div class="episodes-section">
+          <h3 class="episodes-heading">Episodes & Downloads</h3>
+        
+          <div class="episodes-list">
+            {episodes.map((episode) => (
+              <details class="ep-accordion">
+                <summary class="ep-header">
+                  <div class="ep-title-wrap">
+                    <span class="ep-number">EP {String(episode.ep).padStart(2, '0')}</span>
+                    {episode.title && <span class="ep-title">{episode.title}</span>}
+                  </div>
+                  <div class="ep-chevron">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+                </summary>
+                
+                <div class="dl-table">
+                  {episode.downloads.map((dl) => (
+                    <a href={dl.link} target="_blank" class="dl-row">
+                      <div class="dl-info">
+                        <svg class="dl-icon-front" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="7 10 12 15 17 10"></polyline>
+                          <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span class="dl-source">{dl.source}</span>
+                        <span class="badge badge-quality">{dl.format.toUpperCase()}</span>
+                        <span class="badge badge-quality">{dl.quality}</span>
+                        <span class="badge badge-size">{dl.size}</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p class="notice">
+        {episodes && episodes.length > 0 ? (
+          <a href="/donate">
+            လူကြီးမင်းတို့ ကြည့်ရှုရ အဆင်ပြေတယ်ဆို တင်ဆက်ပေးသူအား
+            ကော်ဖီဝယ်တိုက်နိုင်ပါတယ်။ &rarr;
+          </a>
+        ) : (
+          'No episodes yet. Coming Soon...'
+        )}
+      </p>
+    </div>
+  </article>
+</Base>

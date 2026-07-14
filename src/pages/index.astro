@@ -1,17 +1,227 @@
 ---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
 
+const entries = (await getCollection('anime')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title)
+);
+
+// Only the fields the browser needs to render/filter/paginate cards —
+// keeps the embedded JSON small.
+const catalogData = entries.map((entry) => ({
+  slug: entry.slug,
+  title: entry.data.title,
+  poster: entry.data.poster,
+  type: entry.data.type,
+  year: entry.data.year ?? null,
+  status: entry.data.status ?? null,
+  genres: entry.data.genres,
+  rating: entry.data.rating ?? null,
+  totalEpisodes: entry.data.totalEpisodes ?? null,
+}));
+
+const uniqueGenres = [...new Set(entries.flatMap((e) => e.data.genres))].sort();
+const uniqueYears = [...new Set(entries.map((e) => e.data.year).filter(Boolean))].sort(
+  (a, b) => b - a
+);
+
+const PAGE_SIZE = 10;
+const catalogJSON = JSON.stringify(catalogData);
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Base title="AURA Channel">
+  <h1></h1>
+  <div class="filter-toolbar">
+    <div class="search-field">
+      <svg class="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="1.6" />
+        <path d="M13.3 13.3 18 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+      <input
+        type="search"
+        id="search-input"
+        class="search-input"
+        placeholder="Search titles…"
+        aria-label="Search titles"
+      />
+    </div>
+
+    <div class="select-row">
+      <select id="filter-type" class="filter-select" aria-label="Filter by type">
+        <option value="All">All Types</option>
+        <option value="Movie">Movie</option>
+        <option value="Series">Series</option>
+      </select>
+
+      <select id="filter-status" class="filter-select" aria-label="Filter by status">
+        <option value="All">All Status</option>
+        <option value="Ongoing">Ongoing</option>
+        <option value="Completed">Completed</option>
+        <option value="Upcoming">Upcoming</option>
+      </select>
+
+      <select id="filter-genre" class="filter-select" aria-label="Filter by genre">
+        <option value="All">All Genres</option>
+        {uniqueGenres.map((g) => <option value={g}>{g}</option>)}
+      </select>
+
+      <select id="filter-year" class="filter-select" aria-label="Filter by year">
+        <option value="All">All Years</option>
+        {uniqueYears.map((y) => <option value={y}>{y}</option>)}
+      </select>
+
+      <button type="button" id="clear-filters" class="clear-btn">Clear</button>
+    </div>
+  </div>
+
+  <p class="result-count" id="result-count"></p>
+
+  <div class="catalog-grid" id="catalog-grid"></div>
+
+  <p class="empty-state" id="empty-state" hidden>No titles match these filters.</p>
+
+  <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
+
+  <script type="application/json" id="catalog-data" set:html={catalogJSON} />
+
+  <script define:vars={{ PAGE_SIZE }}>
+    const entries = JSON.parse(document.getElementById('catalog-data').textContent);
+    const grid = document.getElementById('catalog-grid');
+    const emptyState = document.getElementById('empty-state');
+    const paginationEl = document.getElementById('pagination');
+    const resultCount = document.getElementById('result-count');
+
+    const searchInput = document.getElementById('search-input');
+    const typeSelect = document.getElementById('filter-type');
+    const statusSelect = document.getElementById('filter-status');
+    const genreSelect = document.getElementById('filter-genre');
+    const yearSelect = document.getElementById('filter-year');
+    const clearBtn = document.getElementById('clear-filters');
+
+    const state = { search: '', type: 'All', status: 'All', genre: 'All', year: 'All', page: 1 };
+
+    function applyFilters() {
+      const q = state.search.trim().toLowerCase();
+      return entries.filter((e) => {
+        const searchOk = !q || e.title.toLowerCase().includes(q);
+        const typeOk = state.type === 'All' || e.type === state.type;
+        const statusOk = state.status === 'All' || e.status === state.status;
+        const genreOk = state.genre === 'All' || e.genres.includes(state.genre);
+        const yearOk = state.year === 'All' || String(e.year) === state.year;
+        return searchOk && typeOk && statusOk && genreOk && yearOk;
+      });
+    }
+
+    function cardHTML(e) {
+      const bits = [e.type, e.year].filter(Boolean).join(' · ');
+      const ratingBadge = e.rating
+        ? `<span class="rating-badge">★ ${e.rating.toFixed(1)}</span>`
+        : '';
+      const epValue =
+        typeof e.totalEpisodes === 'number' ? `${e.totalEpisodes} EP` : e.totalEpisodes || null;
+      const episodeBadge = epValue
+        ? `<span class="episode-badge"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.3" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 6.2 10 8l-3.5 1.8V6.2Z" fill="currentColor"/></svg>${epValue}</span>`
+        : '';
+      const statusBadge = e.status
+        ? `<span class="status-badge status-${e.status.toLowerCase()}">${e.status}</span>`
+        : '';
+      return `
+        <a class="card" href="/anime/${e.slug}/">
+          <div class="card-poster-wrap">
+            <img class="card-poster" src="${e.poster}" alt="${e.title} cover art" loading="lazy" />
+            ${ratingBadge}
+            ${episodeBadge}
+            ${statusBadge}
+          </div>
+          <div class="card-body">
+            <span class="card-slot">${bits}</span>
+            <h2 class="card-title">${e.title}</h2>
+          </div>
+        </a>`;
+    }
+
+    function render() {
+      const filtered = applyFilters();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      state.page = Math.min(state.page, totalPages);
+
+      const start = (state.page - 1) * PAGE_SIZE;
+      const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+      grid.innerHTML = pageItems.map(cardHTML).join('');
+      emptyState.hidden = filtered.length > 0;
+      resultCount.textContent = `Showing ${filtered.length} of ${entries.length} titles`;
+
+      renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+      if (totalPages <= 1) {
+        paginationEl.innerHTML = '';
+        return;
+      }
+      const prevDisabled = state.page === 1 ? 'disabled' : '';
+      const nextDisabled = state.page === totalPages ? 'disabled' : '';
+      paginationEl.innerHTML = `
+        <button type="button" class="page-btn" data-page="prev" ${prevDisabled}>&larr; Prev</button>
+        <span class="page-status">Page ${state.page} of ${totalPages}</span>
+        <button type="button" class="page-btn" data-page="next" ${nextDisabled}>Next &rarr;</button>
+      `;
+    }
+
+    searchInput.addEventListener('input', () => {
+      state.search = searchInput.value;
+      state.page = 1;
+      render();
+    });
+
+    typeSelect.addEventListener('change', () => {
+      state.type = typeSelect.value;
+      state.page = 1;
+      render();
+    });
+
+    statusSelect.addEventListener('change', () => {
+      state.status = statusSelect.value;
+      state.page = 1;
+      render();
+    });
+
+    genreSelect.addEventListener('change', () => {
+      state.genre = genreSelect.value;
+      state.page = 1;
+      render();
+    });
+
+    yearSelect.addEventListener('change', () => {
+      state.year = yearSelect.value;
+      state.page = 1;
+      render();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      state.search = '';
+      state.type = 'All';
+      state.status = 'All';
+      state.genre = 'All';
+      state.year = 'All';
+      state.page = 1;
+      searchInput.value = '';
+      typeSelect.value = 'All';
+      statusSelect.value = 'All';
+      genreSelect.value = 'All';
+      yearSelect.value = 'All';
+      render();
+    });
+
+    paginationEl.addEventListener('click', (event) => {
+      const btn = event.target.closest('.page-btn');
+      if (!btn || btn.disabled) return;
+      state.page += btn.dataset.page === 'next' ? 1 : -1;
+      render();
+      paginationEl.scrollIntoView({ block: 'nearest' });
+    });
+
+    render();
+  </script>
+</Base>
