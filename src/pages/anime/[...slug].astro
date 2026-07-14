@@ -50,7 +50,7 @@ const formatLabel = { srt: 'SRT', ass: 'ASS' };
     </div>
 
     <div>
-      <a class="back-link" href="/">&larr; Back</a>
+      <a class="back-link" href="#" onclick="history.back(); return false;">&larr; Back</a>
 
       <p class="detail-eyebrow">
         {type}
@@ -109,11 +109,10 @@ const formatLabel = { srt: 'SRT', ass: 'ASS' };
       )}
 
       <p class="notice">
-        {episodes && episodes.length > 0 ? (
-          <a href="/donate">
-            လူကြီးမင်းတို့အနေနဲ့ ကြည့်ရှုရ အဆင်ပြေတယ်ဆို တင်ဆက်ပေးသူအား
-            ကော်ဖီဝယ်တိုက်နိုင်ပါတယ်။ &rarr;
-          </a>
+        {episodes && episodes.length > 0 ?(
+          <>
+            <span>Link တွေ နှိပ်လို့ Telegram ထဲ တန်းမရောက်ပါက <b style="color: gold">VPN</b> လေး ခံပြီးမှ ဝင်ကြည့်ပေးကြပါနော်။</span>
+          </>
         ) : (
           'No episodes yet. Coming Soon...'
         )}
