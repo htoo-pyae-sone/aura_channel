@@ -1,5 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
+import SwipeNav from '../components/SwipeNav.astro';
+
+const pages = [
+  { href: '/about', label: 'About' },
+  { href: '/donate', label: 'Donate' },
+  { href: '/terms', label: 'Terms' },
+];
 ---
 
 <Base title="About Us — AURA Channel">
@@ -24,5 +31,7 @@ import Base from '../layouts/Base.astro';
         </p>
       </section>
     </div>
+
+    <SwipeNav pages={pages} current="/about" />
   </article>
 </Base>
