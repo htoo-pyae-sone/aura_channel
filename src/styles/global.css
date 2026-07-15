@@ -1139,20 +1139,24 @@ a:hover {
   }
 }
 
-/* --- Scroll to Top Button (Super Transparent & High Blur) --- */
+/* --- Scroll to Top Button (Refined Glassmorphism) --- */
 .scroll-to-top {
   position: fixed;
   bottom: 2rem;
   right: 2rem;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
 
-  background: rgba(255, 255, 255, 0.01);
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(var(--accent-rgb), 0.05);
+  /* Subtle accent background */
+  backdrop-filter: blur(10px);
+  /* Stronger blur for glass effect */
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  /* Accent border */
 
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text);
+  /* Use main text color */
 
   border-radius: 50%;
   display: flex;
@@ -1163,34 +1167,48 @@ a:hover {
 
   opacity: 0;
   visibility: hidden;
-  transform: translateY(20px);
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transform: translateY(20px) scale(0.9);
+  /* Subtle scale effect */
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Bouncier transition */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  /* Deeper shadow */
 }
 
 .scroll-to-top.show {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 .scroll-to-top:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  transform: translateY(-5px);
-  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.05);
+  background: rgba(var(--accent-rgb), 0.15);
+  /* More visible on hover */
+  border-color: var(--accent);
+  /* Accent border on hover */
+  color: var(--accent);
+  /* Accent color for icon on hover */
+  transform: translateY(-3px) scale(1.05);
+  /* Lift and slightly enlarge */
+  box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.2);
+  /* Accent glow shadow */
+}
+
+.scroll-to-top svg {
+  width: 20px;
+  height: 20px;
 }
 
 @media (max-width: 768px) {
   .scroll-to-top {
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 32px;
-    height: 32px;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 40px;
+    height: 40px;
   }
 
   .scroll-to-top svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 }
