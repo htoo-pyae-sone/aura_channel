@@ -21,7 +21,7 @@ episodes:
         format: "mp4"
         quality: "1080p"
         size: "207 MB"
-        link: "https://t.me/onlyforhtoo_bot?start=AAA_a7ba4c02c645"
+        link: "https://t.me/onlyforhtoo_bot?start=AABHf14f2ad4fbe5"
   - ep: 2
     title: "Koharu Fuyutsuki"
     downloads:
@@ -34,7 +34,7 @@ episodes:
         format: "mp4"
         quality: "1080p"
         size: "203 MB"
-        link: "https://t.me/onlyforhtoo_bot?start=AABB09af59cd5bc4"
+        link: "https://t.me/onlyforhtoo_bot?start=AABJ3c325da29535"
 ---
 
 "လောကကြီးကနေ ပုန်းကွယ်ချင်နေသူနဲ့ လောကကြီးကို မမြင်ရတဲ့သူတို့ရဲ့  တွေ့ဆုံခြင်း..."
