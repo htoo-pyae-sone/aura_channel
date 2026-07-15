@@ -1148,15 +1148,11 @@ a:hover {
   height: 48px;
 
   background: rgba(var(--accent-rgb), 0.05);
-  /* Subtle accent background */
   backdrop-filter: blur(10px);
-  /* Stronger blur for glass effect */
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(var(--accent-rgb), 0.2);
-  /* Accent border */
+  border: none;
 
   color: var(--text);
-  /* Use main text color */
 
   border-radius: 50%;
   display: flex;
@@ -1168,11 +1164,8 @@ a:hover {
   opacity: 0;
   visibility: hidden;
   transform: translateY(20px) scale(0.9);
-  /* Subtle scale effect */
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  /* Bouncier transition */
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-  /* Deeper shadow */
+  box-shadow: none;
 }
 
 .scroll-to-top.show {
@@ -1183,15 +1176,10 @@ a:hover {
 
 .scroll-to-top:hover {
   background: rgba(var(--accent-rgb), 0.15);
-  /* More visible on hover */
   border-color: var(--accent);
-  /* Accent border on hover */
   color: var(--accent);
-  /* Accent color for icon on hover */
   transform: translateY(-3px) scale(1.05);
-  /* Lift and slightly enlarge */
-  box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.2);
-  /* Accent glow shadow */
+  box-shadow: none;
 }
 
 .scroll-to-top svg {
