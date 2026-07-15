@@ -112,6 +112,12 @@ const catalogJSON = JSON.stringify(catalogData);
       });
     }
 
+    function escapeHTML(str) {
+     const div = document.createElement('div');
+     div.textContent = str ?? '';
+     return div.innerHTML;
+    }
+
     function cardHTML(e) {
       const bits = [e.type, e.year].filter(Boolean).join(' · ');
       const ratingBadge = e.rating
@@ -135,7 +141,7 @@ const catalogJSON = JSON.stringify(catalogData);
           </div>
           <div class="card-body">
             <span class="card-slot">${bits}</span>
-            <h2 class="card-title">${e.title}</h2>
+            <h2 class="card-title">${escapeHTML(e.title)}</h2>
           </div>
         </a>`;
     }
