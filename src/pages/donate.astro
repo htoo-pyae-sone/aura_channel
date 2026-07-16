@@ -7,40 +7,141 @@ const pages = [
   { href: '/donate', label: 'Donate' },
   { href: '/terms', label: 'Terms' },
 ];
+
+const paymentMethods = [
+  {
+    name: 'KPay',
+    number: '09 676 964 559',
+    owner: 'Aura Channel',
+    qrCode: '/images/kpay-qr.png',
+  },
+  {
+    name: 'WavePay',
+    number: '09 676 964 559',
+    owner: 'Aura Channel',
+    qrCode: '/images/wavepay-qr.png',
+  },
+];
 ---
 
-<Base title="Support Us — AURA Channel">
+<Base title="Buy me a Coffee — AURA Channel">
   <article class="page-container">
     <a class="back-link" href="#" onclick="history.back(); return false;">&larr; Back</a>
     <header class="page-header">
-      <h1 class="page-title">Support <span class="highlight">Us</span></h1>
-      <p class="page-subtitle">အားပေးသူတိုင်းကို ကျေးဇူးတင်ပါတယ်။</p>
+      <h1 class="page-title">Buy me a <span class="highlight">Coffee</span></h1>
+      <p class="page-subtitle">ကော်ဖီတခွက် လက်ဆောင်</p>
     </header>
 
     <div class="content-blocks">
-      <section class="content-block support-block">
+      <section class="content-block glass-card">
         <div class="block-icon icon-support">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" y1="2" x2="6" y2="4"></line><line x1="10" y1="2" x2="10" y2="4"></line><line x1="14" y1="2" x2="14" y2="4"></line></svg>
         </div>
-        <h2>ကော်ဖီဖိုး</h2>
+        <h2>Support the Work</h2>
         <p>
-          ဘာသာပြန် တင်ဆက်သူမှာ အမြဲအိပ်ရေးမဝ အိပ်ငိုက်တတ်သောကြောင့် ကော်ဖီဝယ်တိုက်ချင်သူများ ဝယ်တိုက်နိုင်ပါတယ်ခင်ဗျာ။
+          ဘာမှ မဟုတ်ဘူး
+        </p>
+        <p>
+          ကော်ဖီသောက်ချင်လို့...
         </p>
         
-        <div class="payment-methods">
-          <div class="pay-card">
-            <span class="pay-name">KPay</span>
-            <span class="pay-number">09 676 964 559</span>
-            <span class="pay-owner">Aura Channel</span>
-          </div>
-          <div class="pay-card">
-            <span class="pay-name">WavePay</span>
-            <span class="pay-number">09 676 964 559</span>
-            <span class="pay-owner">Aura Channel</span>
-          </div>
+        <div class="payment-methods-grid">
+          {paymentMethods.map((method) => (
+            <div class="pay-card glass-card">
+              <span class="pay-name">{method.name}</span>
+              <div class="pay-number-wrap">
+                <span class="pay-number" id={`pay-number-${method.name.toLowerCase()}`}>{method.number}</span>
+                <button class="copy-btn" data-clipboard-target={`#pay-number-${method.name.toLowerCase()}`} aria-label="Copy number">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <span class="copy-feedback">Copied!</span>
+                </button>
+                {method.qrCode && (
+                  <button class="scan-btn" data-qr-src={method.qrCode} data-qr-name={method.name} aria-label="Scan QR Code">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM18 15h3v3h-3zM18 18h3v3h-3zM18 12h3v3h-3zM12 15h3v3h-3zM12 12h3v3h-3zM12 18h3v3h-3z"></path></svg>
+                  </button>
+                )}
+              </div>
+              <span class="pay-owner">{method.owner}</span>
+            </div>
+          ))}
         </div>
       </section>
     </div>
+
     <SwipeNav pages={pages} current="/donate" />
+
+    <!-- QR Code Modal -->
+    <div id="qr-modal" class="qr-modal-overlay">
+      <div class="qr-modal-content glass-card">
+        <button class="qr-modal-close" aria-label="Close QR Code">&times;</button>
+        <h3 id="qr-modal-title"></h3>
+        <img id="qr-modal-img" src="" alt="QR Code" class="qr-modal-img" />
+        <p class="qr-modal-caption"></p>
+      </div>
+    </div>
   </article>
 </Base>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Copy functionality
+    document.querySelectorAll('.copy-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        const targetId = button.dataset.clipboardTarget;
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          try {
+            await navigator.clipboard.writeText(targetElement.textContent);
+            const feedback = button.querySelector('.copy-feedback');
+            if (feedback) {
+              feedback.classList.add('show');
+              setTimeout(() => {
+                feedback.classList.remove('show');
+              }, 1500);
+            }
+          } catch (err) {
+            console.error('Failed to copy: ', err);
+          }
+        }
+      });
+    });
+
+    // QR Modal functionality
+    const qrModal = document.getElementById('qr-modal');
+    const qrModalImg = document.getElementById('qr-modal-img');
+    const qrModalTitle = document.getElementById('qr-modal-title');
+    const qrModalCaption = document.querySelector('.qr-modal-caption');
+    const qrModalClose = document.querySelector('.qr-modal-close');
+
+    document.querySelectorAll('.scan-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const qrSrc = button.dataset.qrSrc;
+        const qrName = button.dataset.qrName;
+        if (qrSrc && qrName) {
+          qrModalImg.src = qrSrc;
+          qrModalImg.alt = `${qrName} QR Code`;
+          qrModalTitle.textContent = `${qrName} QR Code`;
+          qrModalCaption.textContent = `${qrName} ဖြင့် Scan ဖတ်ရန်`;
+          qrModal.classList.add('show');
+        }
+      });
+    });
+
+    qrModalClose.addEventListener('click', () => {
+      qrModal.classList.remove('show');
+    });
+
+    qrModal.addEventListener('click', (event) => {
+      if (event.target === qrModal) {
+        qrModal.classList.remove('show');
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && qrModal.classList.contains('show')) {
+        qrModal.classList.remove('show');
+      }
+    });
+  });
+</script>

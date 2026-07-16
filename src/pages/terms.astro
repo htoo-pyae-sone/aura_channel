@@ -7,29 +7,93 @@ const pages = [
   { href: '/donate', label: 'Donate' },
   { href: '/terms', label: 'Terms' },
 ];
+
+const termsContent = {
+  en: [
+    { title: 'Subtitle Translations Only', description: 'AURA Channel provides solely custom-timed, Burmese translated subtitles.' },
+    { title: 'Zero Video Hosting', description: 'This website strictly does not store, host, or upload any video files or media on its servers. Posters, synopses, and metadata are provided for informational purposes only.' },
+    { title: 'Third-Party Links', description: 'All viewing links direct to external third-party platforms (e.g., Telegram Bots). We hold no responsibility for the compliance or legality of the content hosted on these external servers.' },
+    { title: 'Original Content Ownership', description: 'All anime properties, images, and characters belong to their respective studios and creators. We claim no ownership over the original content.' },
+    { title: 'Personal, Non-Commercial Use', description: 'Our translated subtitles are intended for strictly personal, non-commercial viewing. Reselling or re-uploading our translations without permission is strictly prohibited.' },
+    { title: 'DMCA & Contact', description: 'If you are a copyright owner wishing to request link removals, or if you have any translation concerns, please contact us at aurachannel@gmail.com.' },
+  ],
+  my: [
+    { title: 'ဘာသာပြန်မှု သက်သက်သာ', description: 'AURA Channel တွင် တင်ဆက်ထားသော ဇာတ်ကားများသည် ဤဆိုက်ပိုင်ရှင်မှ ကိုယ်တိုင် ဘာသာပြန်ဆိုထားသော timing နှင့် စာသားများသာ ဖြစ်ပါသည်။' },
+    { title: 'ဗီဒီယိုဖိုင်များ လက်ခံသိမ်းဆည်းထားခြင်း မရှိပါ', description: 'ဤဆိုက်တွင် anime ဇာတ်ကား ဗီဒီယိုဖိုင်များကို hosting လုံးဝ(လုံးဝ) မလုပ်ထားပါ။ ပိုစတာပုံများနှင့် ဇာတ်လမ်းအကျဉ်း စသည့် အချက်အလက်များသည် သတင်းအချက်အလက် ပေးရန် ရည်ရွယ်ချက်အတွက်သာ ဖြစ်ပါသည်။' },
+    { title: 'ပြင်ပလင့်ခ်များသို့သာ ညွှန်းဆိုခြင်း', description: 'ဇာတ်ကားကြည့်ရှုရန် လင့်ခ်များအားလုံးသည် ပြင်ပ (Telegram) သို့သာ ညွှန်းဆိုထားခြင်းဖြစ်ပြီး၊ ထိုပြင်ပဆာဗာများရှိ အကြောင်းအရာများအတွက် ကျွန်ုပ်တို့တွင် တာဝန်မရှိပါ။' },
+    { title: 'မူပိုင်ခွင့်', description: 'Anime ဇာတ်ကားများ၊ ပုံများနှင့် ဇာတ်ကောင်များ၏ မူပိုင်ခွင့်သည် သက်ဆိုင်ရာ Studio များထံတွင်သာ ရှိပါသည်။ ဤဆိုက်က မည်သည့်ပိုင်ဆိုင်မှုကိုမျှ ကြွေးကြော်ခြင်း မရှိပါ။' },
+    { title: 'ကိုယ်ပိုင်ကြည့်ရှုရန်သာ', description: 'ဘာသာပြန်တင်ဆက်ထားသည့် ဇာတ်ကားများကို ကိုယ်ပိုင်ကြည့်ရှုရန်အတွက်သာ အသုံးပြုပါ။ ပြန်လည်ရောင်းချခြင်း၊ ခွင့်ပြုချက်မရှိဘဲ တခြားနေရာများတွင် ပြန်တင်ခြင်းမျိုးကို အပြင်းအထန် ကန့်ကွက်ပါသည်။' },
+    { title: 'ဆက်သွယ်ရန်', description: 'မူပိုင်ခွင့်ဆိုင်ရာ ဖြုတ်ချပေးရန် တောင်းဆိုမှုများ (သို့) ဘာသာပြန်အမှားအယွင်းများအတွက် aurachannel@gmail.com သို့ ဆက်သွယ်နိုင်ပါသည်။' },
+  ],
+};
 ---
 
 <Base title="Terms & Policies — AURA Channel">
   <article class="page-container">
-   <a class="back-link" href="#" onclick="history.back(); return false;">&larr; Back</a>
+    <a class="back-link" href="#" onclick="history.back(); return false;">&larr; Back</a>
     <header class="page-header">
       <h1 class="page-title">Terms & <span class="highlight">Policies</span></h1>
       <p class="page-subtitle">စည်းကမ်းချက်များနှင့် မူပိုင်ခွင့်ဆိုင်ရာ</p>
     </header>
 
-    <div class="content-blocks">
-      <section class="content-block terms-block">
-        <div class="block-icon icon-terms">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-        </div>
-        <h2>Terms & Policies</h2>
-        <ul>
-          <li><strong>No Hosting:</strong> This website does not store, host, or upload any video files on its servers. All media content is provided by non-affiliated third parties.</li>
-          <li><strong>Third-Party Links:</strong> All links provided on this site direct to external third-party websites or Telegram bots. We are not responsible for the compliance, copyright, legality, or decency of the content hosted by these external platforms.</li>
-          <li><strong>Take Down Request:</strong> If you are a copyright owner and wish to request the removal of specific links pointing to your content, please contact us at aurachannel@gmail.com.</li>
-        </ul>
-      </section>
+    <div class="terms-tabs">
+      <div class="tab-buttons">
+        <button class="tab-button active" data-lang="en">English</button>
+        <button class="tab-button" data-lang="my">မြန်မာ</button>
+      </div>
+
+      <div id="terms-en" class="tab-content active">
+        <section class="content-block terms-block">
+          <h2>Terms & Policies (English)</h2>
+          <ul>
+            {termsContent.en.map((item) => (
+              <li>
+                <strong>{item.title}</strong>
+                <p>{item.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div id="terms-my" class="tab-content">
+        <section class="content-block terms-block">
+          <h2>စည်းကမ်းချက်များနှင့် မူပိုင်ခွင့်ဆိုင်ရာ (မြန်မာ)</h2>
+          <ul>
+            {termsContent.my.map((item) => (
+              <li>
+                <strong>{item.title}</strong>
+                <p>{item.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </div>
+
     <SwipeNav pages={pages} current="/terms" />
   </article>
 </Base>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        const targetLang = button.dataset.lang;
+        tabContents.forEach(content => {
+          if (content.id === `terms-${targetLang}`) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
+        });
+      });
+    });
+  });
+</script>

@@ -6,8 +6,6 @@ const entries = (await getCollection('anime')).sort((a, b) =>
   a.data.title.localeCompare(b.data.title)
 );
 
-// Only the fields the browser needs to render/filter/paginate cards —
-// keeps the embedded JSON small.
 const catalogData = entries.map((entry) => ({
   slug: entry.slug,
   title: entry.data.title,
@@ -30,7 +28,7 @@ const catalogJSON = JSON.stringify(catalogData);
 ---
 
 <Base title="AURA Channel">
-  <h1></h1>
+ <h1></h1>
   <div class="filter-toolbar">
     <div class="search-field">
       <svg class="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -74,13 +72,15 @@ const catalogJSON = JSON.stringify(catalogData);
     </div>
   </div>
 
-  <p class="result-count" id="result-count"></p>
-
+  <p class="result-count" id="result-count" aria-live="polite"></p>
   <div class="catalog-grid" id="catalog-grid"></div>
-
   <p class="empty-state" id="empty-state" hidden>No titles match these filters.</p>
 
-  <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
+  <div class="load-more-wrap">
+    <button type="button" id="load-more-btn" class="load-more-btn" hidden>
+      Load More
+    </button>
+  </div>
 
   <script type="application/json" id="catalog-data" set:html={catalogJSON} />
 
@@ -88,7 +88,7 @@ const catalogJSON = JSON.stringify(catalogData);
     const entries = JSON.parse(document.getElementById('catalog-data').textContent);
     const grid = document.getElementById('catalog-grid');
     const emptyState = document.getElementById('empty-state');
-    const paginationEl = document.getElementById('pagination');
+    const loadMoreBtn = document.getElementById('load-more-btn');
     const resultCount = document.getElementById('result-count');
 
     const searchInput = document.getElementById('search-input');
@@ -98,7 +98,31 @@ const catalogJSON = JSON.stringify(catalogData);
     const yearSelect = document.getElementById('filter-year');
     const clearBtn = document.getElementById('clear-filters');
 
-    const state = { search: '', type: 'All', status: 'All', genre: 'All', year: 'All', page: 1 };
+    const urlParams = new URLSearchParams(window.location.search);
+    const state = { 
+      search: urlParams.get('q') || '', 
+      type: urlParams.get('type') || 'All', 
+      status: urlParams.get('status') || 'All', 
+      genre: urlParams.get('genre') || 'All', 
+      year: urlParams.get('year') || 'All', 
+      visibleCount: PAGE_SIZE 
+    };
+
+    if (state.search) searchInput.value = state.search;
+    if (state.type !== 'All') typeSelect.value = state.type;
+    if (state.status !== 'All') statusSelect.value = state.status;
+    if (state.genre !== 'All') genreSelect.value = state.genre;
+    if (state.year !== 'All') yearSelect.value = state.year;
+
+    function updateURL() {
+      const url = new URL(window.location);
+      state.search ? url.searchParams.set('q', state.search) : url.searchParams.delete('q');
+      state.type !== 'All' ? url.searchParams.set('type', state.type) : url.searchParams.delete('type');
+      state.status !== 'All' ? url.searchParams.set('status', state.status) : url.searchParams.delete('status');
+      state.genre !== 'All' ? url.searchParams.set('genre', state.genre) : url.searchParams.delete('genre');
+      state.year !== 'All' ? url.searchParams.set('year', state.year) : url.searchParams.delete('year');
+      window.history.replaceState({}, '', url);
+    }
 
     function applyFilters() {
       const q = state.search.trim().toLowerCase();
@@ -113,28 +137,35 @@ const catalogJSON = JSON.stringify(catalogData);
     }
 
     function escapeHTML(str) {
-     const div = document.createElement('div');
-     div.textContent = str ?? '';
-     return div.innerHTML;
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag] || tag)
+      );
     }
 
     function cardHTML(e) {
       const bits = [e.type, e.year].filter(Boolean).join(' · ');
-      const ratingBadge = e.rating
-        ? `<span class="rating-badge">★ ${e.rating.toFixed(1)}</span>`
-        : '';
-      const epValue =
-        typeof e.totalEpisodes === 'number' ? `${e.totalEpisodes} EP` : e.totalEpisodes || null;
-      const episodeBadge = epValue
-        ? `<span class="episode-badge"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.3" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 6.2 10 8l-3.5 1.8V6.2Z" fill="currentColor"/></svg>${epValue}</span>`
-        : '';
-      const statusBadge = e.status
-        ? `<span class="status-badge status-${e.status.toLowerCase()}">${e.status}</span>`
-        : '';
+      const ratingBadge = e.rating ? `<span class="rating-badge">★ ${e.rating.toFixed(1)}</span>` : '';
+      const epValue = typeof e.totalEpisodes === 'number' ? `${e.totalEpisodes} EP` : e.totalEpisodes || null;
+      const episodeBadge = epValue ? `<span class="episode-badge"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.3" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 6.2 10 8l-3.5 1.8V6.2Z" fill="currentColor"/></svg>${epValue}</span>` : '';
+      const statusBadge = e.status ? `<span class="status-badge status-${e.status.toLowerCase()}">${e.status}</span>` : '';
+      
+      // Fallback placeholder image URL (Replace with your actual default image path)
+      const fallbackImg = "'/images/placeholder.png'"; 
+
       return `
         <a class="card" href="/anime/${e.slug}/">
           <div class="card-poster-wrap">
-            <img class="card-poster" src="${e.poster}" alt="${e.title} cover art" loading="lazy" />
+            <img 
+              class="card-poster" 
+              src="${escapeHTML(e.poster)}" 
+              alt="${escapeHTML(e.title)} cover art" 
+              loading="lazy" 
+              decoding="async" 
+              onerror="this.onerror=null;this.src=${fallbackImg};" 
+            />
             ${ratingBadge}
             ${episodeBadge}
             ${statusBadge}
@@ -146,88 +177,75 @@ const catalogJSON = JSON.stringify(catalogData);
         </a>`;
     }
 
-    function render() {
-      const filtered = applyFilters();
-      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-      state.page = Math.min(state.page, totalPages);
+    let currentFiltered = [];
 
-      const start = (state.page - 1) * PAGE_SIZE;
-      const pageItems = filtered.slice(start, start + PAGE_SIZE);
+    function renderFiltered() {
+      currentFiltered = applyFilters();
+      state.visibleCount = PAGE_SIZE;
+      updateURL();
 
-      grid.innerHTML = pageItems.map(cardHTML).join('');
-      emptyState.hidden = filtered.length > 0;
-      resultCount.textContent = `Showing ${filtered.length} of ${entries.length} titles`;
+      const visibleItems = currentFiltered.slice(0, state.visibleCount);
+      grid.innerHTML = visibleItems.map(cardHTML).join('');
 
-      renderPagination(totalPages);
+      emptyState.hidden = currentFiltered.length > 0;
+      announceResults(visibleItems.length, currentFiltered.length);
+      renderLoadMore();
     }
 
-    function renderPagination(totalPages) {
-      if (totalPages <= 1) {
-        paginationEl.innerHTML = '';
-        return;
+    function appendMore() {
+      const previousCount = state.visibleCount;
+      state.visibleCount = Math.min(state.visibleCount + PAGE_SIZE, currentFiltered.length);
+
+      const newItems = currentFiltered.slice(previousCount, state.visibleCount);
+      grid.insertAdjacentHTML('beforeend', newItems.map(cardHTML).join(''));
+
+      announceResults(state.visibleCount, currentFiltered.length);
+      renderLoadMore();
+
+      const newCards = grid.querySelectorAll('.card');
+      const firstNewCard = newCards[previousCount];
+      if (firstNewCard) firstNewCard.focus({ preventScroll: true });
+    }
+
+    function announceResults(shown, total) {
+      resultCount.textContent = `Showing ${shown} of ${total} titles`;
+    }
+
+    function renderLoadMore() {
+      const hasMore = state.visibleCount < currentFiltered.length;
+      loadMoreBtn.hidden = !hasMore;
+      if (hasMore) {
+        const remaining = currentFiltered.length - state.visibleCount;
+        loadMoreBtn.textContent = `Load More (${remaining} left)`;
       }
-      const prevDisabled = state.page === 1 ? 'disabled' : '';
-      const nextDisabled = state.page === totalPages ? 'disabled' : '';
-      paginationEl.innerHTML = `
-        <button type="button" class="page-btn" data-page="prev" ${prevDisabled}>&larr; Prev</button>
-        <span class="page-status">Page ${state.page} of ${totalPages}</span>
-        <button type="button" class="page-btn" data-page="next" ${nextDisabled}>Next &rarr;</button>
-      `;
     }
 
-    searchInput.addEventListener('input', () => {
-      state.search = searchInput.value;
-      state.page = 1;
-      render();
-    });
+    let searchDebounce;
+    function debouncedSearch() {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        state.search = searchInput.value;
+        renderFiltered();
+      }, 180);
+    }
 
-    typeSelect.addEventListener('change', () => {
-      state.type = typeSelect.value;
-      state.page = 1;
-      render();
-    });
+    // Input event covers both typing and clicking the native 'x' to clear
+    searchInput.addEventListener('input', debouncedSearch);
 
-    statusSelect.addEventListener('change', () => {
-      state.status = statusSelect.value;
-      state.page = 1;
-      render();
-    });
-
-    genreSelect.addEventListener('change', () => {
-      state.genre = genreSelect.value;
-      state.page = 1;
-      render();
-    });
-
-    yearSelect.addEventListener('change', () => {
-      state.year = yearSelect.value;
-      state.page = 1;
-      render();
-    });
+    typeSelect.addEventListener('change', () => { state.type = typeSelect.value; renderFiltered(); });
+    statusSelect.addEventListener('change', () => { state.status = statusSelect.value; renderFiltered(); });
+    genreSelect.addEventListener('change', () => { state.genre = genreSelect.value; renderFiltered(); });
+    yearSelect.addEventListener('change', () => { state.year = yearSelect.value; renderFiltered(); });
 
     clearBtn.addEventListener('click', () => {
-      state.search = '';
-      state.type = 'All';
-      state.status = 'All';
-      state.genre = 'All';
-      state.year = 'All';
-      state.page = 1;
-      searchInput.value = '';
-      typeSelect.value = 'All';
-      statusSelect.value = 'All';
-      genreSelect.value = 'All';
-      yearSelect.value = 'All';
-      render();
+      state.search = ''; state.type = 'All'; state.status = 'All'; state.genre = 'All'; state.year = 'All';
+      searchInput.value = ''; typeSelect.value = 'All'; statusSelect.value = 'All'; genreSelect.value = 'All'; yearSelect.value = 'All';
+      renderFiltered();
     });
 
-    paginationEl.addEventListener('click', (event) => {
-      const btn = event.target.closest('.page-btn');
-      if (!btn || btn.disabled) return;
-      state.page += btn.dataset.page === 'next' ? 1 : -1;
-      render();
-      paginationEl.scrollIntoView({ block: 'nearest' });
-    });
+    loadMoreBtn.addEventListener('click', appendMore);
 
-    render();
+    // Initial render
+    renderFiltered();
   </script>
 </Base>
