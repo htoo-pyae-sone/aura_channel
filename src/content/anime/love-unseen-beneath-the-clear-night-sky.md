@@ -12,11 +12,6 @@ episodes:
   - ep: 1
     title: "An Encounter"
     downloads:
-      - source: "Telegram"
-        format: "mp4"
-        quality: "1080p"
-        size: "207 MB"
-        link: "https://t.me/AuraChannelMm/14"
       - source: "Bot"
         format: "mp4"
         quality: "1080p"
@@ -25,11 +20,6 @@ episodes:
   - ep: 2
     title: "Koharu Fuyutsuki"
     downloads:
-      - source: "Telegram"
-        format: "mp4"
-        quality: "1080p"
-        size: "203 MB"
-        link: "https://t.me/AuraChannelMm/15"
       - source: "Bot"
         format: "mp4"
         quality: "1080p"

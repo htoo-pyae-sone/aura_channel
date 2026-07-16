@@ -12,11 +12,6 @@ episodes:
   - ep: 1
     title: "Smoking Behind the Supermarket with You"
     downloads:
-      - source: "Telegram"
-        format: "mp4"
-        quality: "1080p"
-        size: "243 MB"
-        link: "https://t.me/AuraChannelMm/11"
       - source: "Bot"
         format: "mp4"
         quality: "1080p"
