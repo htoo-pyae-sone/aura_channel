@@ -17,6 +17,14 @@ episodes:
         quality: "1080p"
         size: "243 MB"
         link: "https://t.me/onlyforhtoo_bot?start=AABL7eb6161c04d8"
+  - ep: 2
+    title: "Cheering Up Behind the Supermarket with You"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "228 MB"
+        link: "https://t.me/onlyforhtoo_bot?start=AABTec61a1fd5559"
 ---
 
 ဇာတ်လမ်းရဲ့ အဓိက ဇာတ်ကောင်က Sasaki (ဆာဆာကီ) လို့ခေါ်တဲ့ အလုပ်အရမ်းများပြီး ပင်ပန်းနွမ်းနယ်နေတဲ့ အသက် ၄၀ ဝန်းကျင် ကုမ္ပဏီဝန်ထမ်း တစ်ယောက်ပါ။ သူ့ရဲ့ နေ့စဉ်ဘဝမှာ တစ်ခုတည်းသော အမောပြေစရာက အလုပ်အပြန် သူဝင်နေကျ စူပါမားကတ်လေးက Yamada (ယာမာဒါ) လို့ခေါ်တဲ့ အပြုံးချိုချိုနဲ့ ငွေရှင်းကောင်တာက ကောင်မလေးကို တွေ့ရတာပါပဲ။
