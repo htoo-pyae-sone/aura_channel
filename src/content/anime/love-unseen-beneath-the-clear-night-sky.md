@@ -25,14 +25,6 @@ episodes:
         quality: "1080p"
         size: "203 MB"
         link: "https://t.me/onlyforhtoo_bot?start=AABP2e6cd78ef878"
-  - ep: 3
-    title: "The Yellow Bookmark"
-    downloads:
-      - source: "Bot"
-        format: "mp4"
-        quality: "1080p"
-        size: "?"
-        link: ""
 ---
 
 "လောကကြီးကနေ ပုန်းကွယ်ချင်နေသူနဲ့ လောကကြီးကို မမြင်ရတဲ့သူတို့ရဲ့  တွေ့ဆုံခြင်း..."
