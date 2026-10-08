@@ -71,6 +71,7 @@ const EP_PAGE_SIZE = 10;
 <Base title={`${title} — aniXsubs`}>
   <article class="detail">
     <div class="detail-poster-wrap">
+      <img class="detail-poster-bg" src={poster} alt="" aria-hidden="true" />
       <img class="detail-poster" src={poster} alt={`${title} cover art`} />
       {rating && <span class="rating-badge rating-badge-lg">★ {rating.toFixed(1)}</span>}
       {epValue && (
