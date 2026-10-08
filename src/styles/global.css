@@ -719,45 +719,9 @@ a:hover {
     grid-template-columns: 1fr;
   }
 
-  /* No in-page Back on phones — header back + OS back cover it. */
-  .detail > div > .back-link {
-    display: none;
-  }
-
   .detail-poster-wrap {
-    max-width: none;
-    margin: 0 0 1.25rem;
-    overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    display: flex;
-    justify-content: flex-start;
-    padding: 1.25rem 1rem;
-  }
-
-  .detail-poster-bg {
-    display: block;
-    position: absolute;
-    inset: -20px;
-    width: calc(100% + 40px);
-    height: calc(100% + 40px);
-    object-fit: cover;
-    filter: blur(24px) brightness(0.55);
-  }
-
-  .detail-poster {
-    position: relative;
-    width: 150px;
-    max-width: 150px;
-    margin: 0;
-  }
-
-  /* Banner carries no badges on phones; info lives in the text below. */
-  .detail-poster-wrap .rating-badge-lg,
-  .detail-poster-wrap .episode-badge-lg,
-  .detail-poster-wrap .status-badge-lg,
-  .detail-poster-wrap .season-badge-lg {
-    display: none;
+    max-width: 240px;
+    margin: 0 auto;
   }
 
   .synopsis {
@@ -767,10 +731,6 @@ a:hover {
 
 .detail-poster-wrap {
   position: relative;
-}
-
-.detail-poster-bg {
-  display: none;
 }
 
 .detail-poster {
