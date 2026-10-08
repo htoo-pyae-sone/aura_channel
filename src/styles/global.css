@@ -547,8 +547,8 @@ a:hover {
 }
 
 .rating-badge-lg {
-  font-size: 0.9rem;
-  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.65rem;
   top: 0.75rem;
   right: 0.75rem;
 }
@@ -579,8 +579,8 @@ a:hover {
 }
 
 .episode-badge-lg {
-  font-size: 0.85rem;
-  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
   bottom: 0.75rem;
   left: 0.75rem;
 }
@@ -611,7 +611,7 @@ a:hover {
 .season-badge-lg {
   bottom: 0.75rem;
   right: 0.75rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   padding: 0.3rem 0.6rem;
 }
 
@@ -632,7 +632,7 @@ a:hover {
 }
 
 .status-badge-lg {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   padding: 0.3rem 0.6rem;
   top: 0.75rem;
   left: 0.75rem;
@@ -708,7 +708,7 @@ a:hover {
 /* ---------- Detail page ---------- */
 .detail {
   display: grid;
-  grid-template-columns: minmax(220px, 320px) 1fr;
+  grid-template-columns: minmax(180px, 260px) 1fr;
   gap: clamp(1.5rem, 4vw, 3rem);
   padding: clamp(1.5rem, 4vw, 3rem) clamp(1.25rem, 4vw, 3rem) 4rem;
   align-items: start;
@@ -716,7 +716,78 @@ a:hover {
 
 @media (max-width: 640px) {
   .detail {
-    grid-template-columns: 1fr;
+    display: block;
+  }
+
+  /* No Back on phones — header back + OS back cover it. */
+  .detail > div > .back-link {
+    display: none;
+  }
+
+  .detail-poster-wrap {
+    float: left;
+    width: 100px;
+    margin: 0 0.75rem 0.4rem 0;
+  }
+
+  .detail-poster {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    border-radius: 8px;
+  }
+
+  /* Badges off on phones; the info lives in the text beside it. */
+  .detail-poster-wrap .rating-badge-lg,
+  .detail-poster-wrap .episode-badge-lg,
+  .detail-poster-wrap .status-badge-lg,
+  .detail-poster-wrap .season-badge-lg {
+    display: none;
+  }
+
+  .detail-eyebrow {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+  }
+
+  .detail-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0;
+    text-transform: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .detail-native {
+    font-size: 0.68rem;
+    color: #a5a1ba;
+    margin: 0.15rem 0 0.5rem;
+  }
+
+  .genre-tags {
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .genre-tags li {
+    font-size: 0.58rem;
+    padding: 0.15rem 0.45rem;
+    color: #b3aec6;
+  }
+
+  .synopsis,
+  .episodes-section {
+    clear: both;
+  }
+
+  .synopsis {
+    font-size: 0.95rem;
   }
 }
 
@@ -734,7 +805,7 @@ a:hover {
 
 .detail-eyebrow {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   letter-spacing: 0.05em;
   color: var(--accent);
   text-transform: uppercase;
@@ -744,16 +815,17 @@ a:hover {
 .detail-title {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(1.5rem, 4vw, 2.6rem);
+  font-size: clamp(1.35rem, 4vw, 2rem);
   margin: 0 0 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.01em;
+  line-height: 1.15;
 }
 
 .detail-native {
   color: var(--text-muted);
   margin: 0 0 1.25rem;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .genre-tags {
@@ -769,7 +841,7 @@ a:hover {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0.3rem 0.75rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-family: var(--font-mono);
   color: var(--text-muted);
   background: rgba(var(--bg-raised), 0.5);
@@ -778,17 +850,32 @@ a:hover {
 .synopsis {
   max-width: 68ch;
   color: var(--text);
+  font-size: 1rem;
+  line-height: 1.75;
 }
 
 .synopsis p {
   margin: 0 0 1rem;
 }
 
+.synopsis.is-collapsed > *:not(:first-child) {
+  display: none;
+}
+
+.synopsis.is-collapsed::after {
+  content: '...';
+  display: block;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  padding-top: 0.25rem;
+}
+
 .ai-credit {
   margin: 1rem 0 0;
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   letter-spacing: 0.02em;
 }
 
@@ -979,6 +1066,13 @@ a:hover {
 .ep-jump-input::placeholder {
   color: var(--text-muted);
   opacity: 0.7;
+}
+
+@media (max-width: 500px) {
+  /* Hint text may shrink; the input itself stays 16px (no iOS zoom). */
+  .ep-jump-input::placeholder {
+    font-size: 0.72rem;
+  }
 }
 
 .ep-jump-input[aria-invalid="true"] {

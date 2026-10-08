@@ -51,6 +51,11 @@ proper nouns in English; Arabic numerals; loanwords this site's way
 markup sacred; UI strings short. Pattern: hook → spoiler-free setup →
 optional comparison anchor. Paraphrase sources, never copy sentences.
 
+First paragraph carries the page: only the 1st paragraph shows before
+the `...` expand, so it must hook AND summarize alone (who + the deal,
+no cliffhangers, no "read more to find out"). Everything after it is
+detail for expanders.
+
 ## Worked examples (from this repo)
 
 ## Audience

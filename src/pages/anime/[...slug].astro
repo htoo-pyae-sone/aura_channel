@@ -105,12 +105,12 @@ const EP_PAGE_SIZE = 10;
         {genres.map((g) => <li>{g}</li>)}
       </ul>
 
-      <div class="synopsis">
+      <div class="synopsis" id="synopsis">
         <Content />
+        {aiAssisted && (
+          <p class="ai-credit">[AI-assisted synopsis]</p>
+        )}
       </div>
-      {aiAssisted && (
-        <p class="ai-credit">AI-assisted synopsis</p>
-      )}
 
       {hasEpisodes && (
         <div class="episodes-section">
@@ -215,6 +215,33 @@ const EP_PAGE_SIZE = 10;
 
   <script define:vars={{ EP_PAGE_SIZE }}>
     (() => {
+      // Synopsis expand: show first paragraph + centered "..." only when
+      // there is more to read. The dots toggle (no button).
+      const synopsis = document.getElementById('synopsis');
+      if (synopsis) {
+        const paras = Array.from(synopsis.children).filter(
+          (el) => !el.classList.contains('ai-credit')
+        );
+        if (paras.length > 1) {
+          synopsis.classList.add('is-collapsed');
+          synopsis.style.cursor = 'pointer';
+          synopsis.setAttribute('role', 'button');
+          synopsis.setAttribute('tabindex', '0');
+          synopsis.setAttribute('aria-label', 'Expand synopsis');
+          const toggle = () => {
+            const collapsed = synopsis.classList.toggle('is-collapsed');
+            synopsis.setAttribute('aria-label', collapsed ? 'Expand synopsis' : 'Collapse synopsis');
+          };
+          synopsis.addEventListener('click', toggle);
+          synopsis.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggle();
+            }
+          });
+        }
+      }
+
       const jumpInput = document.getElementById('ep-jump-input');
       const jumpMsg = document.getElementById('ep-jump-msg');
       const tabs = Array.from(document.querySelectorAll('[data-season-tab]'));
