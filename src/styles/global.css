@@ -716,74 +716,12 @@ a:hover {
 
 @media (max-width: 640px) {
   .detail {
-    display: block;
-  }
-
-  /* No Back on phones — header back + OS back cover it. */
-  .detail > div > .back-link {
-    display: none;
+    grid-template-columns: 1fr;
   }
 
   .detail-poster-wrap {
-    float: left;
-    width: 100px;
-    margin: 0 0.75rem 0.4rem 0;
-  }
-
-  .detail-poster {
-    max-width: none;
-    width: 100%;
-    margin: 0;
-    border-radius: 8px;
-  }
-
-  /* Badges off on phones; the info lives in the text beside it. */
-  .detail-poster-wrap .rating-badge-lg,
-  .detail-poster-wrap .episode-badge-lg,
-  .detail-poster-wrap .status-badge-lg,
-  .detail-poster-wrap .season-badge-lg {
-    display: none;
-  }
-
-  .detail-eyebrow {
-    font-size: 0.6rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    margin-bottom: 0.3rem;
-  }
-
-  .detail-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    line-height: 1.25;
-    letter-spacing: 0;
-    text-transform: none;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .detail-native {
-    font-size: 0.68rem;
-    color: #a5a1ba;
-    margin: 0.15rem 0 0.5rem;
-  }
-
-  .genre-tags {
-    gap: 0.25rem;
-    margin-bottom: 1rem;
-  }
-
-  .genre-tags li {
-    font-size: 0.58rem;
-    padding: 0.15rem 0.45rem;
-    color: #b3aec6;
-  }
-
-  .synopsis,
-  .episodes-section {
-    clear: both;
+    max-width: 240px;
+    margin: 0 auto;
   }
 
   .synopsis {
