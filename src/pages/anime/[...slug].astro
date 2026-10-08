@@ -1,17 +1,18 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import { downloadUrl } from '../../config';
 
 export async function getStaticPaths() {
   const entries = await getCollection('anime');
   return entries.map((entry) => ({
-    params: { slug: entry.slug },
+    params: { slug: entry.id },
     props: { entry },
   }));
 }
 
 const { entry } = Astro.props;
-const { Content } = await entry.render();
+const { Content } = await render(entry);
 const {
   title,
   titleNative,
@@ -23,14 +24,51 @@ const {
   rating,
   totalEpisodes,
   episodes,
+  seasons,
+  aiAssisted,
 } = entry.data;
-const epValue =
-  typeof totalEpisodes === 'number' ? `${totalEpisodes} EP` : totalEpisodes || null;
 
-const formatLabel = { srt: 'SRT', ass: 'ASS' };
+// Card/detail badge: latest season's count wins when seasons exist.
+const sortedSeasons = seasons?.length
+  ? [...seasons].sort((a, b) => a.season - b.season)
+  : [];
+const latestSeason = sortedSeasons.length ? sortedSeasons[sortedSeasons.length - 1] : null;
+const badgeTotal = latestSeason?.totalEpisodes ?? totalEpisodes;
+const epValue =
+  typeof badgeTotal === 'number' ? `${badgeTotal} EP` : badgeTotal || null;
+
+const seasonList = sortedSeasons.length
+  ? sortedSeasons.map((s) => ({
+      key: `s${s.season}`,
+      tab: `S${s.season}`,
+      meta: [
+        s.title,
+        s.status,
+        typeof s.totalEpisodes === 'number' ? `${s.totalEpisodes} EP` : s.totalEpisodes,
+      ]
+        .filter(Boolean)
+        .join(' · ') || null,
+      episodes: s.episodes,
+    }))
+  : [{ key: 'all', tab: '', meta: null, episodes: episodes ?? [] }];
+const hasEpisodes = seasonList.some((s) => s.episodes.length > 0);
+
+// Detail-poster season badge (same range/+N rule as the card).
+const seasonNums = sortedSeasons.map((s) => s.season);
+const seasonBadge = (() => {
+  if (seasonNums.length < 2) return '';
+  const sorted = [...seasonNums].sort((a, b) => a - b);
+  if (sorted.every((s, i) => i === 0 || s === sorted[i - 1] + 1)) {
+    return `S${sorted[0]}–S${sorted[sorted.length - 1]}`;
+  }
+  if (sorted.length <= 3) return sorted.map((s) => `S${s}`).join('·');
+  return sorted.slice(0, 3).map((s) => `S${s}`).join('·') + `·+${sorted.length - 3}`;
+})();
+
+const EP_PAGE_SIZE = 10;
 ---
 
-<Base title={`${title} — AURA Channel`}>
+<Base title={`${title} — aniXsubs`}>
   <article class="detail">
     <div class="detail-poster-wrap">
       <img class="detail-poster" src={poster} alt={`${title} cover art`} />
@@ -47,10 +85,13 @@ const formatLabel = { srt: 'SRT', ass: 'ASS' };
       {status && (
         <span class={`status-badge status-badge-lg status-${status.toLowerCase()}`}>{status}</span>
       )}
+      {seasonBadge && (
+        <span class="season-badge season-badge-lg">{seasonBadge}</span>
+      )}
     </div>
 
     <div>
-      <a class="back-link" href="#" onclick="history.back(); return false;">&larr; Back</a>
+      <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false;}">&larr; Back</a>
 
       <p class="detail-eyebrow">
         {type}
@@ -67,14 +108,54 @@ const formatLabel = { srt: 'SRT', ass: 'ASS' };
       <div class="synopsis">
         <Content />
       </div>
+      {aiAssisted && (
+        <p class="ai-credit">AI-assisted synopsis</p>
+      )}
 
-      {episodes && episodes.length > 0 && (
+      {hasEpisodes && (
         <div class="episodes-section">
-          <h3 class="episodes-heading">Episodes & Downloads</h3>
-        
-          <div class="episodes-list">
-            {episodes.map((episode) => (
-              <details class="ep-accordion">
+          <div class="episodes-head">
+            <h3 class="episodes-heading">Episodes & Downloads</h3>
+
+            <span class="ep-jump">
+              <label for="ep-jump-input">EP</label>
+              <input
+                id="ep-jump-input"
+                class="ep-jump-input"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                min="1"
+                placeholder="1,2,3..."
+                aria-label="Jump to episode number in the current season"
+              />
+            </span>
+          </div>
+
+          {seasonList.length > 1 && (
+            <div class="season-tabs" role="tablist" aria-label="Seasons">
+              {seasonList.map((s, i) => (
+                <button
+                  type="button"
+                  role="tab"
+                  class="season-tab"
+                  data-season-tab={s.key}
+                  aria-selected={i === 0 ? 'true' : 'false'}
+                >
+                  {s.tab}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <p class="ep-jump-msg" id="ep-jump-msg" role="status" hidden></p>
+
+          {seasonList.map((s, i) => (
+            <div class="season-panel" data-season-panel={s.key}>
+              {s.meta && <p class="season-meta">{s.meta}</p>}
+
+              <div class="episodes-list">
+                {s.episodes.map((episode) => (
+                  <details class="ep-accordion" data-ep={episode.ep}>
                 <summary class="ep-header">
                   <div class="ep-title-wrap">
                     <span class="ep-number">EP {String(episode.ep).padStart(2, '0')}</span>
@@ -86,8 +167,9 @@ const formatLabel = { srt: 'SRT', ass: 'ASS' };
                 </summary>
                 
                 <div class="dl-table">
+                  <div class="dl-rows">
                   {episode.downloads.map((dl) => (
-                    <a href={dl.link} target="_blank" class="dl-row">
+                    <a href={downloadUrl(dl.link)} target="_blank" rel="noopener noreferrer" class="dl-row">
                       <div class="dl-info">
                         <svg class="dl-icon-front" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -101,17 +183,28 @@ const formatLabel = { srt: 'SRT', ass: 'ASS' };
                       </div>
                     </a>
                   ))}
+                  </div>
                 </div>
               </details>
             ))}
           </div>
+
+            <div class="ep-pager ep-pager-bottom" data-ep-pager={s.key} hidden>
+              <p class="ep-count" data-ep-count={s.key} aria-live="polite"></p>
+              <div class="ep-pager-controls">
+                <button type="button" class="ep-page-btn" data-ep-prev={s.key} aria-label="Previous page">&lt;</button>
+                <button type="button" class="ep-page-btn" data-ep-next={s.key} aria-label="Next page">&gt;</button>
+              </div>
+            </div>
+            </div>
+          ))}
         </div>
       )}
 
       <p class="notice">
-        {episodes && episodes.length > 0 ?(
+        {hasEpisodes ?(
           <>
-            <span>( မှတ်ချက်။ Link တွေ နှိပ်လို့ <b>Telegram Bot</b> ဆီ တန်းမရောက်ပါက <b style="color: gold">VPN</b> လေး ခံပြီးမှ ဝင်ကြည့်ပေးကြပါရန်။)</span>
+            <span>( မှတ်ချက်။ Link တွေ နှိပ်လို့ <b>Telegram Bot</b> ဆီ တန်းမရောက်ပါက <b style="color: gold">VPN</b> ခံပြီးမှ ဝင်ကြည့်ပေးကြပါရန်။)</span>
           </>
         ) : (
           'No episodes yet. Coming Soon...'
@@ -119,4 +212,116 @@ const formatLabel = { srt: 'SRT', ass: 'ASS' };
       </p>
     </div>
   </article>
+
+  <script define:vars={{ EP_PAGE_SIZE }}>
+    (() => {
+      const jumpInput = document.getElementById('ep-jump-input');
+      const jumpMsg = document.getElementById('ep-jump-msg');
+      const tabs = Array.from(document.querySelectorAll('[data-season-tab]'));
+      const panels = Array.from(document.querySelectorAll('[data-season-panel]'));
+      if (!panels.length || !jumpInput || !jumpMsg) return;
+
+      function initPanel(panel) {
+        const items = Array.from(panel.querySelectorAll('.ep-accordion'));
+        const pager = panel.querySelector('[data-ep-pager]');
+        const count = panel.querySelector('[data-ep-count]');
+        const prev = panel.querySelector('[data-ep-prev]');
+        const next = panel.querySelector('[data-ep-next]');
+        const pages = Math.max(1, Math.ceil(items.length / EP_PAGE_SIZE));
+        let page = 0;
+
+        function show(p) {
+          page = Math.max(0, Math.min(p, pages - 1));
+          const start = page * EP_PAGE_SIZE;
+          items.forEach((el, i) => {
+            el.hidden = i < start || i >= start + EP_PAGE_SIZE;
+          });
+          if (!pager) return;
+          // Pager chrome on every title; under 10 EPs both arrows sit disabled.
+          pager.hidden = false;
+          const end = Math.min(start + EP_PAGE_SIZE, items.length);
+          count.textContent = `Showing ${start + 1}–${end} of ${items.length}`;
+          prev.disabled = page === 0;
+          next.disabled = page === pages - 1;
+        }
+
+        if (prev && next && pager) {
+          prev.addEventListener('click', () => {
+            show(page - 1);
+            pager.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+          next.addEventListener('click', () => {
+            show(page + 1);
+            pager.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        }
+
+        show(0);
+        return { items, show };
+      }
+
+      const pagers = panels.map(initPanel);
+      let active = 0;
+
+      // No-JS sees every season; JS collapses to the first tab.
+      panels.forEach((panel, i) => {
+        panel.hidden = i !== 0;
+      });
+
+      function selectSeason(i) {
+        active = Math.max(0, Math.min(i, panels.length - 1));
+        panels.forEach((panel, j) => {
+          panel.hidden = j !== active;
+        });
+        tabs.forEach((tab, j) => {
+          tab.setAttribute('aria-selected', j === active ? 'true' : 'false');
+          tab.classList.toggle('active', j === active);
+        });
+        jumpInput.value = '';
+        jumpInput.removeAttribute('aria-invalid');
+        jumpMsg.hidden = true;
+      }
+
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => selectSeason(i));
+      });
+
+      function jump() {
+        const raw = jumpInput.value.trim();
+        if (!raw) {
+          jumpInput.removeAttribute('aria-invalid');
+          jumpMsg.hidden = true;
+          return;
+        }
+        const n = parseInt(raw, 10);
+        if (!n) return;
+        const { items, show } = pagers[active];
+        const total = items.length;
+        const idx = items.findIndex((el) => Number(el.dataset.ep) === n);
+        if (idx === -1) {
+          jumpInput.setAttribute('aria-invalid', 'true');
+          jumpMsg.textContent =
+            `Episode ${n} isn't available yet — this season lists ` +
+            `${total} episode${total === 1 ? '' : 's'} so far.`;
+          jumpMsg.hidden = false;
+          return;
+        }
+        jumpInput.removeAttribute('aria-invalid');
+        jumpMsg.hidden = true;
+        show(Math.floor(idx / EP_PAGE_SIZE));
+        const target = items[idx];
+        target.open = true;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const summary = target.querySelector('summary');
+        if (summary) summary.focus({ preventScroll: true });
+      }
+
+      // Search runs only on Enter / keyboard Go.
+      jumpInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          jump();
+        }
+      });
+    })();
+  </script>
 </Base>

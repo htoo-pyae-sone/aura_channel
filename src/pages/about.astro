@@ -4,34 +4,108 @@ import SwipeNav from '../components/SwipeNav.astro';
 
 const pages = [
   { href: '/about', label: 'About' },
-  { href: '/donate', label: 'Donate' },
+  { href: '/guide', label: 'Guide' },
   { href: '/terms', label: 'Terms' },
 ];
+
+const aboutContent = {
+  en: [
+    {
+      title: 'What is aniXsubs?',
+      description:
+        'aniXsubs is a one-person passion project sharing anime with Burmese subtitles. Subtitles start as an AI-generated draft, then go through a manual quality check — timing, spelling, and natural dialogue — before each episode is encoded for quality and released here and via our Telegram bot.',
+    },
+    {
+      title: 'How releases work',
+      description:
+        'Titles are picked personally, so releases follow no fixed schedule — this runs alongside a day job, not like the big simulcast channels. What is promised instead: careful subtitles and clean encodes for every episode that ships.',
+    },
+    {
+      title: 'A small request',
+      description:
+        'Mistranslations and late uploads still happen. Feedback is welcome at aurachannel@gmail.com — corrections from viewers genuinely make the next episode better.',
+    },
+  ],
+  my: [
+    {
+      title: 'aniXsubs ဆိုတာ',
+      description:
+        'aniXsubs ဆိုတာ လူတစ်ယောက်တည်း ဝါသနာအရ လုပ်နေတဲ့ မြန်မာစာတန်းထိုး Anime Channel ပါ။ စာတန်းတွေကို AI နဲ့ အကြမ်းထုတ်ပြီးနောက် timing၊ စာလုံးပေါင်း၊ ပြောစကား သဘာဝကျမှု တို့ကို လူကိုယ်တိုင် စစ်ဆေးကာ၊ Quality ကောင်းအောင် encode လုပ်ပြီးမှ ဒီ site နဲ့ Telegram bot ကနေ တင်ဆက်ပေးပါတယ်။',
+    },
+    {
+      title: 'ဇာတ်ကားတင်ပုံ',
+      description:
+        'ကြိုက်တဲ့ကားကို ရွေးတင်တာမို့ အချိန်မှန်မှန် ထွက်မယ်လို့ ကတိမပေးနိုင်ပါဘူး — အလုပ်တဖက်နဲ့ လုပ်နေရတာမို့ Channel ကြီးတွေလို မြန်မြန်တင်နိုင်မှာ မဟုတ်ပါဘူး။ ဒါပေမယ့် ထွက်လာသမျှ အပိုင်းတိုင်းကို စာတန်းသေသေချာချာ၊ Quality ကောင်းကောင်းနဲ့ တင်ပေးဖို့ကိုတော့ ကတိပေးပါတယ်။',
+    },
+    {
+      title: 'တောင်းဆိုချက်',
+      description:
+        'ဘာသာပြန်လွဲတာ၊ တင်တာနောက်ကျတာတွေ ဖြစ်နိုင်ပါတယ်။ အမှားတွေ့ရင် aurachannel@gmail.com ကို ပြောပေးပါ — ကြည့်ရှုသူတို့ရဲ့ အကြံပြုချက်က နောက်အပိုင်းကို ပိုကောင်းစေပါတယ်။',
+    },
+  ],
+};
 ---
 
-<Base title="About Us — AURA Channel">
+<Base title="About Us — aniXsubs">
   <article class="page-container">
-    <a class="back-link" href="#" onclick="history.back(); return false;">&larr; Back</a>
+    <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false;}">&larr; Back</a>
     <header class="page-header">
-      <h1 class="page-title">AURA <span class="highlight">Channel</span></h1>
+      <h1 class="page-title">aniX<span class="highlight">subs</span></h1>
       <p class="page-subtitle">A Personal Passion Project by One Creator</p>
     </header>
 
-    <div class="content-blocks">
-      <section class="content-block glass-card">
-        <div class="block-icon icon-welcome">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+    <div class="terms-tabs">
+      <div class="tab-buttons">
+        <button class="tab-button active" data-lang="en">English</button>
+        <button class="tab-button" data-lang="my">မြန်မာ</button>
+      </div>
+
+      <div id="terms-en" class="tab-content active">
+        <div class="content-blocks">
+          {aboutContent.en.map((item) => (
+            <section class="content-block glass-card">
+              <h2>{item.title}</h2>
+              <p>{item.description}</p>
+            </section>
+          ))}
         </div>
-        <h2>AURA Channel အကြောင်း</h2>
-        <p>
-          AURA Channel ကို Anime ကားတွေကြည့်ရင်း ဘာသာပြန်ရတာ နှစ်သက်သော လူငယ်လေးတဦးမှ ဖန်တီးထားခြင်းဖြစ်ပါသည်။ သို့သော် ထိုလူငယ်လေးသည် အလုပ်တဖက်နှင့် ဖြစ်သောကြောင့် Anime ဘာသာပြန်ဆိုနေသည့် တခြား Channel များကဲ့သို့ Anime ပေါင်းများစွာကို အချိန်နှင့်တပြေးညီ တင်ဆက်နိုင်မည် မဟုတ်ချေ။ 
-        </p>
-        <p>
-          ထိုလူငယ်လေးသည် ဂျပန်စာလဲ မတတ်သလို အင်္ဂလိပ်စာလဲ မကျွမ်းပါ။ ကြည့်ရှုသူတို့ အဆင်ပြေအောင်၊ ဘာသာပြန် ချောမွေ့အောင်၊ စာလုံးပေါင်း မမှားအောင်၊ ဇာတ်ကား Quality မကျအောင်တော့ အမြဲဂရုတစိုက် လုပ်ပေးလေ့ရှိပါသည်။ ထို့ကြောင့် ဇာတ်ကားတင်ချိန် နောက်ကျတာမျိုး၊ ဘာသာပြန်ဆိုထားသည့် စာသားတချို့က ဂျပန်ဘာသာနှင့် မကိုက်ညီတာမျိုးဆို အပြစ်မယူဘဲ ခွင့်လွှတ်ပေးကြဖို့ ကြိုတင်မေတ္တာရပ်ခံအပ်ပါသည်။
-        </p>
-      </section>
+      </div>
+
+      <div id="terms-my" class="tab-content">
+        <div class="content-blocks">
+          {aboutContent.my.map((item) => (
+            <section class="content-block glass-card">
+              <h2>{item.title}</h2>
+              <p>{item.description}</p>
+            </section>
+          ))}
+        </div>
+      </div>
     </div>
 
     <SwipeNav pages={pages} current="/about" />
   </article>
 </Base>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        const targetLang = button.dataset.lang;
+        tabContents.forEach(content => {
+          if (content.id === `terms-${targetLang}`) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
+        });
+      });
+    });
+  });
+</script>

@@ -6,44 +6,40 @@ const entries = (await getCollection('anime')).sort((a, b) =>
   a.data.title.localeCompare(b.data.title)
 );
 
-const catalogData = entries.map((entry) => ({
-  slug: entry.slug,
-  title: entry.data.title,
-  poster: entry.data.poster,
-  type: entry.data.type,
-  year: entry.data.year ?? null,
-  status: entry.data.status ?? null,
-  genres: entry.data.genres,
-  rating: entry.data.rating ?? null,
-  totalEpisodes: entry.data.totalEpisodes ?? null,
-}));
+const catalogData = entries.map((entry) => {
+  // Card badge: latest season's count wins when seasons exist.
+  const sorted = entry.data.seasons?.length
+    ? [...entry.data.seasons].sort((a, b) => a.season - b.season)
+    : [];
+  const latest = sorted.length ? sorted[sorted.length - 1] : null;
+  return {
+    slug: entry.id,
+    title: entry.data.title,
+    poster: entry.data.poster,
+    type: entry.data.type,
+    year: entry.data.year ?? null,
+    status: latest?.status ?? entry.data.status ?? null,
+    genres: entry.data.genres,
+    rating: entry.data.rating ?? null,
+    totalEpisodes: latest?.totalEpisodes ?? entry.data.totalEpisodes ?? null,
+    seasons: sorted.map((s) => s.season),
+  };
+});
 
 const uniqueGenres = [...new Set(entries.flatMap((e) => e.data.genres))].sort();
-const uniqueYears = [...new Set(entries.map((e) => e.data.year).filter(Boolean))].sort(
-  (a, b) => b - a
-);
+const uniqueYears = [
+  ...new Set(entries.map((e) => e.data.year).filter((y): y is number => typeof y === 'number')),
+].sort((a, b) => b - a);
 
-const PAGE_SIZE = 10;
-const catalogJSON = JSON.stringify(catalogData);
+// Escape `<` so frontmatter values (titles, etc.) can't break out of the
+// <script type="application/json"> block via `</script>`.
+const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
 ---
 
-<Base title="AURA Channel">
- <h1></h1>
-  <div class="filter-toolbar">
-    <div class="search-field">
-      <svg class="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="1.6" />
-        <path d="M13.3 13.3 18 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-      </svg>
-      <input
-        type="search"
-        id="search-input"
-        class="search-input"
-        placeholder="Search titles…"
-        aria-label="Search titles"
-      />
-    </div>
+<Base title="aniXsubs">
+  <h1 class="sr-only">aniXsubs – Anime Catalog</h1>
 
+  <div class="filter-panel" id="filter-panel" hidden>
     <div class="select-row">
       <select id="filter-type" class="filter-select" aria-label="Filter by type">
         <option value="All">All Types</option>
@@ -68,44 +64,82 @@ const catalogJSON = JSON.stringify(catalogData);
         {uniqueYears.map((y) => <option value={y}>{y}</option>)}
       </select>
 
+      <select id="page-size" class="filter-select" aria-label="Cards per page">
+        <option value="10">10 / page</option>
+        <option value="20">20 / page</option>
+        <option value="50">50 / page</option>
+      </select>
+
       <button type="button" id="clear-filters" class="clear-btn">Clear</button>
     </div>
   </div>
 
-  <p class="result-count" id="result-count" aria-live="polite"></p>
   <div class="catalog-grid" id="catalog-grid"></div>
   <p class="empty-state" id="empty-state" hidden>No titles match these filters.</p>
 
-  <div class="load-more-wrap">
-    <button type="button" id="load-more-btn" class="load-more-btn" hidden>
-      Load More
-    </button>
+  <div class="ep-pager ep-pager-bottom catalog-pager" id="cat-pager" hidden>
+    <p class="ep-count" id="cat-count" aria-live="polite"></p>
+    <div class="ep-pager-controls" role="navigation" aria-label="Catalog pages">
+      <button type="button" id="cat-first" class="ep-page-btn" aria-label="First page">&laquo;</button>
+      <button type="button" id="cat-prev" class="ep-page-btn" aria-label="Previous page">&lt;</button>
+      <span class="cat-numbers" id="cat-numbers"></span>
+      <button type="button" id="cat-next" class="ep-page-btn" aria-label="Next page">&gt;</button>
+      <button type="button" id="cat-last" class="ep-page-btn" aria-label="Last page">&raquo;</button>
+    </div>
   </div>
 
   <script type="application/json" id="catalog-data" set:html={catalogJSON} />
 
-  <script define:vars={{ PAGE_SIZE }}>
+  <script>
     const entries = JSON.parse(document.getElementById('catalog-data').textContent);
     const grid = document.getElementById('catalog-grid');
     const emptyState = document.getElementById('empty-state');
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    const resultCount = document.getElementById('result-count');
+    const pager = document.getElementById('cat-pager');
+    const count = document.getElementById('cat-count');
+    const firstBtn = document.getElementById('cat-first');
+    const prevBtn = document.getElementById('cat-prev');
+    const nextBtn = document.getElementById('cat-next');
+    const lastBtn = document.getElementById('cat-last');
+    const numbers = document.getElementById('cat-numbers');
 
-    const searchInput = document.getElementById('search-input');
+    // The header search IS the catalog search (single box, Enter to apply).
+    const searchInput = document.querySelector('.header-search-input');
     const typeSelect = document.getElementById('filter-type');
     const statusSelect = document.getElementById('filter-status');
     const genreSelect = document.getElementById('filter-genre');
     const yearSelect = document.getElementById('filter-year');
     const clearBtn = document.getElementById('clear-filters');
+    const pageSizeSelect = document.getElementById('page-size');
+
+    // Cards per page: saved choice wins, else 20 on desktop / 10 on phones.
+    function readStoredSize() {
+      try {
+        const v = parseInt(localStorage.getItem('aura-page-size') || '', 10);
+        return [10, 20, 50].includes(v) ? v : 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+    let pageSize = readStoredSize();
+    if (!pageSize) {
+      pageSize = window.matchMedia('(min-width: 1024px)').matches ? 20 : 10;
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
+    const urlPage = parseInt(urlParams.get('page') || '', 10);
+    // Legacy param from the infinite-scroll era (?shown=): drop it.
+    if (urlParams.has('shown')) {
+      const clean = new URL(window.location);
+      clean.searchParams.delete('shown');
+      window.history.replaceState({}, '', clean);
+    }
     const state = { 
       search: urlParams.get('q') || '', 
       type: urlParams.get('type') || 'All', 
       status: urlParams.get('status') || 'All', 
       genre: urlParams.get('genre') || 'All', 
       year: urlParams.get('year') || 'All', 
-      visibleCount: PAGE_SIZE 
+      page: urlPage > 1 ? urlPage - 1 : 0
     };
 
     if (state.search) searchInput.value = state.search;
@@ -113,6 +147,7 @@ const catalogJSON = JSON.stringify(catalogData);
     if (state.status !== 'All') statusSelect.value = state.status;
     if (state.genre !== 'All') genreSelect.value = state.genre;
     if (state.year !== 'All') yearSelect.value = state.year;
+    pageSizeSelect.value = String(pageSize);
 
     function updateURL() {
       const url = new URL(window.location);
@@ -121,6 +156,9 @@ const catalogJSON = JSON.stringify(catalogData);
       state.status !== 'All' ? url.searchParams.set('status', state.status) : url.searchParams.delete('status');
       state.genre !== 'All' ? url.searchParams.set('genre', state.genre) : url.searchParams.delete('genre');
       state.year !== 'All' ? url.searchParams.set('year', state.year) : url.searchParams.delete('year');
+      state.page > 0
+        ? url.searchParams.set('page', state.page + 1)
+        : url.searchParams.delete('page');
       window.history.replaceState({}, '', url);
     }
 
@@ -146,17 +184,27 @@ const catalogJSON = JSON.stringify(catalogData);
     }
 
     function cardHTML(e) {
-      const bits = [e.type, e.year].filter(Boolean).join(' · ');
+      const epText = typeof e.totalEpisodes === 'number'
+        ? `${e.totalEpisodes} EP`
+        : (e.totalEpisodes || null);
+      const bits = [e.type, e.year, epText, seasonLabel(e.seasons)].filter(Boolean).join(' · ');
       const ratingBadge = e.rating ? `<span class="rating-badge">★ ${e.rating.toFixed(1)}</span>` : '';
-      const epValue = typeof e.totalEpisodes === 'number' ? `${e.totalEpisodes} EP` : e.totalEpisodes || null;
-      const episodeBadge = epValue ? `<span class="episode-badge"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.3" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 6.2 10 8l-3.5 1.8V6.2Z" fill="currentColor"/></svg>${epValue}</span>` : '';
       const statusBadge = e.status ? `<span class="status-badge status-${e.status.toLowerCase()}">${e.status}</span>` : '';
-      
-      // Fallback placeholder image URL (Replace with your actual default image path)
-      const fallbackImg = "'/images/placeholder.png'"; 
+
+      function seasonLabel(seasons) {
+        if (!seasons || seasons.length < 2) return '';
+        const sorted = [...seasons].sort((a, b) => a - b);
+        const contiguous = sorted.every((s, i) => i === 0 || s === sorted[i - 1] + 1);
+        if (contiguous) return `S${sorted[0]}–S${sorted[sorted.length - 1]}`;
+        if (sorted.length <= 3) return sorted.map((s) => `S${s}`).join('·');
+        return sorted.slice(0, 3).map((s) => `S${s}`).join('·') + `·+${sorted.length - 3}`;
+      }
+
+      // Branded fallback when a poster URL dies.
+      const fallbackImg = "'/images/aniXsubs-no-photo-placeholder-v2.png'";
 
       return `
-        <a class="card" href="/anime/${e.slug}/">
+        <a class="card" href="/anime/${escapeHTML(e.slug)}/">
           <div class="card-poster-wrap">
             <img 
               class="card-poster" 
@@ -167,7 +215,6 @@ const catalogJSON = JSON.stringify(catalogData);
               onerror="this.onerror=null;this.src=${fallbackImg};" 
             />
             ${ratingBadge}
-            ${episodeBadge}
             ${statusBadge}
           </div>
           <div class="card-body">
@@ -179,73 +226,122 @@ const catalogJSON = JSON.stringify(catalogData);
 
     let currentFiltered = [];
 
-    function renderFiltered() {
+    function renderPage() {
       currentFiltered = applyFilters();
-      state.visibleCount = PAGE_SIZE;
+      const pages = Math.max(1, Math.ceil(currentFiltered.length / pageSize));
+      state.page = Math.max(0, Math.min(state.page, pages - 1));
       updateURL();
 
-      const visibleItems = currentFiltered.slice(0, state.visibleCount);
+      const start = state.page * pageSize;
+      const visibleItems = currentFiltered.slice(start, start + pageSize);
       grid.innerHTML = visibleItems.map(cardHTML).join('');
 
-      emptyState.hidden = currentFiltered.length > 0;
-      announceResults(visibleItems.length, currentFiltered.length);
-      renderLoadMore();
-    }
+      const isEmpty = currentFiltered.length === 0;
+      emptyState.hidden = !isEmpty;
+      pager.hidden = isEmpty;
 
-    function appendMore() {
-      const previousCount = state.visibleCount;
-      state.visibleCount = Math.min(state.visibleCount + PAGE_SIZE, currentFiltered.length);
-
-      const newItems = currentFiltered.slice(previousCount, state.visibleCount);
-      grid.insertAdjacentHTML('beforeend', newItems.map(cardHTML).join(''));
-
-      announceResults(state.visibleCount, currentFiltered.length);
-      renderLoadMore();
-
-      const newCards = grid.querySelectorAll('.card');
-      const firstNewCard = newCards[previousCount];
-      if (firstNewCard) firstNewCard.focus({ preventScroll: true });
-    }
-
-    function announceResults(shown, total) {
-      resultCount.textContent = `Showing ${shown} of ${total} titles`;
-    }
-
-    function renderLoadMore() {
-      const hasMore = state.visibleCount < currentFiltered.length;
-      loadMoreBtn.hidden = !hasMore;
-      if (hasMore) {
-        const remaining = currentFiltered.length - state.visibleCount;
-        loadMoreBtn.textContent = `Load More (${remaining} left)`;
+      if (!isEmpty) {
+        const end = Math.min(start + pageSize, currentFiltered.length);
+        count.textContent = `Showing ${start + 1}–${end} of ${currentFiltered.length}`;
+        firstBtn.disabled = state.page === 0;
+        prevBtn.disabled = state.page === 0;
+        nextBtn.disabled = state.page === pages - 1;
+        lastBtn.disabled = state.page === pages - 1;
+        numbers.innerHTML = pageNumbers(state.page, pages);
       }
     }
 
-    let searchDebounce;
-    function debouncedSearch() {
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => {
-        state.search = searchInput.value;
-        renderFiltered();
-      }, 180);
+    // Windowed page numbers: up to 5 around current, first/last pinned.
+    function pageNumbers(p, pages) {
+      const size = 5;
+      let start = Math.max(0, p - 2);
+      start = Math.min(start, Math.max(0, pages - size));
+      const end = Math.min(pages, start + size);
+      let html = '';
+      if (start > 0) {
+        html += numBtn(0, p) + '<span class="cat-ellipsis" aria-hidden="true">…</span>';
+      }
+      for (let i = start; i < end; i++) {
+        html += numBtn(i, p);
+      }
+      if (end < pages) {
+        html += '<span class="cat-ellipsis" aria-hidden="true">…</span>' + numBtn(pages - 1, p);
+      }
+      return html;
     }
 
-    // Input event covers both typing and clicking the native 'x' to clear
-    searchInput.addEventListener('input', debouncedSearch);
+    function numBtn(i, p) {
+      const active = i === p ? ' is-active' : '';
+      const current = i === p ? ' aria-current="page"' : '';
+      const disabled = i === p ? ' disabled' : '';
+      return `<button type="button" class="ep-page-btn cat-num${active}" data-p="${i}" aria-label="Page ${i + 1}"${current}${disabled}>${i + 1}</button>`;
+    }
 
-    typeSelect.addEventListener('change', () => { state.type = typeSelect.value; renderFiltered(); });
-    statusSelect.addEventListener('change', () => { state.status = statusSelect.value; renderFiltered(); });
-    genreSelect.addEventListener('change', () => { state.genre = genreSelect.value; renderFiltered(); });
-    yearSelect.addEventListener('change', () => { state.year = yearSelect.value; renderFiltered(); });
+    function gotoPage(p, scrollTop = true) {
+      state.page = p;
+      renderPage();
+      if (scrollTop) {
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
 
-    clearBtn.addEventListener('click', () => {
-      state.search = ''; state.type = 'All'; state.status = 'All'; state.genre = 'All'; state.year = 'All';
-      searchInput.value = ''; typeSelect.value = 'All'; statusSelect.value = 'All'; genreSelect.value = 'All'; yearSelect.value = 'All';
-      renderFiltered();
+    // Header search applies on Enter (form submit).
+    searchInput.closest('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      state.search = searchInput.value;
+      state.page = 0;
+      renderPage();
+      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
-    loadMoreBtn.addEventListener('click', appendMore);
+    // Filter panel toggle (button lives in the site header).
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterPanel = document.getElementById('filter-panel');
 
-    // Initial render
-    renderFiltered();
+    filterToggle.hidden = false;
+    filterToggle.addEventListener('click', () => {
+      const open = filterPanel.hidden;
+      filterPanel.hidden = !open;
+      filterToggle.setAttribute('aria-expanded', String(open));
+    });
+
+    typeSelect.addEventListener('change', () => { state.type = typeSelect.value; state.page = 0; renderPage(); });
+    statusSelect.addEventListener('change', () => { state.status = statusSelect.value; state.page = 0; renderPage(); });
+    genreSelect.addEventListener('change', () => { state.genre = genreSelect.value; state.page = 0; renderPage(); });
+    yearSelect.addEventListener('change', () => { state.year = yearSelect.value; state.page = 0; renderPage(); });
+
+    function setPageSize(v) {
+      pageSize = [10, 20, 50].includes(v) ? v : 10;
+      try {
+        localStorage.setItem('aura-page-size', String(pageSize));
+      } catch (e) {
+        /* private mode etc. — choice just won't persist */
+      }
+      pageSizeSelect.value = String(pageSize);
+      state.page = 0;
+      renderPage();
+    }
+
+    pageSizeSelect.addEventListener('change', () => {
+      setPageSize(parseInt(pageSizeSelect.value, 10));
+    });
+
+    clearBtn.addEventListener('click', () => {
+      state.search = ''; state.type = 'All'; state.status = 'All'; state.genre = 'All'; state.year = 'All'; state.page = 0;
+      searchInput.value = ''; typeSelect.value = 'All'; statusSelect.value = 'All'; genreSelect.value = 'All'; yearSelect.value = 'All';
+      renderPage();
+    });
+
+    prevBtn.addEventListener('click', () => gotoPage(state.page - 1));
+    nextBtn.addEventListener('click', () => gotoPage(state.page + 1));
+    firstBtn.addEventListener('click', () => gotoPage(0));
+    lastBtn.addEventListener('click', () => gotoPage(Number.MAX_SAFE_INTEGER));
+    numbers.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-p]');
+      if (btn) gotoPage(parseInt(btn.dataset.p, 10));
+    });
+
+    // Initial render (?page= restores back-button position)
+    renderPage();
   </script>
 </Base>

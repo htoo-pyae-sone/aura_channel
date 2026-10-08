@@ -1,0 +1,147 @@
+---
+import Base from '../layouts/Base.astro';
+import SwipeNav from '../components/SwipeNav.astro';
+
+const pages = [
+  { href: '/about', label: 'About' },
+  { href: '/guide', label: 'Guide' },
+  { href: '/terms', label: 'Terms' },
+];
+
+const guideContent = {
+  en: [
+    {
+      title: '1. Find a title',
+      description:
+        'Use the search box and filters (type, status, genre, year) on the home page, then tap a card to open its page.',
+    },
+    {
+      title: '2. Download an episode',
+      description:
+        'Open “Episodes & Downloads”, expand the episode (or type its number in the EP box), then tap a download row. It opens our Telegram bot with your link.',
+    },
+    {
+      title: '3. Receive the file',
+      description:
+        'Press START in the bot and the episode arrives named like [CODE] Title. For large files, forward it to Saved Messages right away — bot copies auto-delete after about 30 minutes.',
+    },
+    {
+      title: '4. Inline shortcut',
+      description:
+        'In any chat (e.g. Saved Messages), type @onlyforhtoo_bot plus a CODE or title, then tap the result. The file lands there directly — handy when downloads are slow.',
+    },
+    {
+      title: '5. Language',
+      description:
+        'Send /lang in the bot chat to switch between English and Myanmar. New users start in English.',
+    },
+    {
+      title: '6. Trouble?',
+      description:
+        '“Expired or invalid” link → grab a fresh one from the site. If the bot won’t open, turn on VPN and retry. Sending /start alone shows the welcome card with Website and Language buttons.',
+    },
+  ],
+  my: [
+    {
+      title: '၁။ ဇာတ်ကားရှာရန်',
+      description:
+        'Homepage မှာ search box နဲ့ filter များ (type, status, genre, year) သုံးပြီး ကြိုက်တဲ့ကားကို နှိပ်ဖွင့်ပါ။',
+    },
+    {
+      title: '၂။ ဒေါင်းလုတ်ဆွဲရန်',
+      description:
+        '“Episodes & Downloads” မှာ episode ကို ဖြန့်ကြည့်ပါ (EP box မှာ နံပါတ်ရိုက်ရှာနိုင်ပါတယ်)၊ ပြီးရင် download row ကို နှိပ်ပါ။ Telegram bot လင့်ခ်နဲ့ ပွင့်လာပါမယ်။',
+    },
+    {
+      title: '၃။ ဖိုင်ရယူရန်',
+      description:
+        'Bot မှာ START နှိပ်လိုက်ရင် [CODE] နာမည်နဲ့ ဇာတ်ကားရောက်လာပါမယ်။ ဖိုင်ကြီးတွေဆို Saved Messages ကို ချက်ချင်း forward လုပ်ထားပါ — bot ကပို့တဲ့ဖိုင်တွေက မိနစ် ၃၀ ခန့်အကြာမှာ အလိုအလျောက် ပျက်သွားပါတယ်။',
+    },
+    {
+      title: '၄။ Inline ဖြတ်လမ်း',
+      description:
+        'မည်သည့် chat မှာမဆို (ဥပမာ Saved Messages) @onlyforhtoo_bot လို့ ရိုက်ပြီး CODE (သို့) နာမည်ဆက်ရိုက်ကာ ရလဒ်ကို နှိပ်ပါ။ ဖိုင်က အဲဒီ့မှာ တိုက်ရိုက်ရောက်ပါတယ်။',
+    },
+    {
+      title: '၅။ ဘာသာစကား',
+      description:
+        'Bot chat မှာ /lang ပို့ပြီး English / မြန်မာ ပြောင်းနိုင်ပါတယ်။ အသစ်တွေအတွက် English က default ပါ။',
+    },
+    {
+      title: '၆။ အခက်အခဲရှိလျှင်',
+      description:
+        '“Link expired or invalid” ပြရင် site ကနေ လင့်ခ်အသစ် ပြန်ယူပါ။ Bot ပွင့်မလာရင် VPN ခံပြီး ပြန်ကြိုးစားပါ။ /start ချည်းသက်သက် ပို့ရင် Website နဲ့ Language ခလုတ်ပါတဲ့ welcome card ပြပါတယ်။',
+    },
+  ],
+};
+---
+
+<Base title="User Guide — aniXsubs">
+  <article class="page-container">
+    <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false;}">&larr; Back</a>
+    <header class="page-header">
+      <h1 class="page-title">User <span class="highlight">Guide</span></h1>
+      <p class="page-subtitle">အသုံးပြုနည်း လမ်းညွှန်</p>
+    </header>
+
+    <div class="terms-tabs">
+      <div class="tab-buttons">
+        <button class="tab-button active" data-lang="en">English</button>
+        <button class="tab-button" data-lang="my">မြန်မာ</button>
+      </div>
+
+      <div id="terms-en" class="tab-content active">
+        <section class="content-block terms-block">
+          <h2>How to use the site & bot (English)</h2>
+          <ul>
+            {guideContent.en.map((item) => (
+              <li>
+                <strong>{item.title}</strong>
+                <p>{item.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div id="terms-my" class="tab-content">
+        <section class="content-block terms-block">
+          <h2>ဆိုက်နှင့် Bot အသုံးပြုနည်း (မြန်မာ)</h2>
+          <ul>
+            {guideContent.my.map((item) => (
+              <li>
+                <strong>{item.title}</strong>
+                <p>{item.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <SwipeNav pages={pages} current="/guide" />
+  </article>
+</Base>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        const targetLang = button.dataset.lang;
+        tabContents.forEach(content => {
+          if (content.id === `terms-${targetLang}`) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
+        });
+      });
+    });
+  });
+</script>

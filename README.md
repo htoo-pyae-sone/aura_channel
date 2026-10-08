@@ -1,30 +1,28 @@
-# Night Guide — Anime Catalog
+# aniXsubs — Anime Catalog
 
-A free, statically-hosted catalog site built with [Astro](https://astro.build)
-and deployed via GitHub Pages. Shows cover art, title, genres, and a
-synopsis for each entry.
-
-**This site is informational only.** The content schema has no
-`episodes` or `link` fields — there's nowhere in this template to add a
-video/streaming link, by design.
+A statically-hosted catalog site built with [Astro](https://astro.build)
+and deployed on Vercel. Shows cover art, title, genres, rating, and a
+synopsis for each entry, plus per-episode download links.
 
 ## Project structure
 
 ```
 src/
+  content.config.ts    ← collection + schema (title, poster, genres, type, year, status, rating, totalEpisodes, episodes)
   content/
-    config.ts          ← the schema (title, poster, genres, type, year, status)
     anime/
-      example-series-one.md
-      example-movie-one.md
+      smoking-behind-the-supermarket-with-you.md
+      love-unseen-beneath-the-clear-night-sky.md
+  components/
+    SwipeNav.astro     ← about/terms pager
   layouts/
-    Base.astro          ← shared page shell + design system
+    Base.astro         ← shared page shell + design system
   pages/
-    index.astro          ← catalog grid
-    anime/[...slug].astro ← individual entry page
+    index.astro        ← catalog grid + search/filter
+    anime/[...slug].astro ← individual entry + episodes/downloads
+    about.astro / guide.astro / terms.astro
   styles/
-    global.css           ← design tokens & styling
-.github/workflows/deploy.yml  ← auto-deploys to GitHub Pages on push to main
+    global.css         ← design tokens & styling
 ```
 
 ## Adding a title
@@ -39,7 +37,42 @@ poster: "https://example.com/poster.jpg"
 genres: ["Action", "Drama"]
 type: "Series"                       # "Movie" or "Series"
 year: 2024                            # optional
-status: "Airing"                      # optional: Airing / Completed / Upcoming
+status: "Ongoing"                     # optional: Ongoing / Completed / Upcoming
+rating: 8.5                           # optional, 0-10
+aiAssisted: true                      # optional: shows the AI credit line
+totalEpisodes: 24                     # number, "Unknown", or "170+" (only these)
+episodes:                             # optional: single-season list
+  - ep: 1
+    title: "Episode title"             # optional
+    downloads:
+      - source: "Bot"
+        format: "mp4"                 # "mkv" or "mp4"
+        quality: "1080p"
+        size: "243 MB"
+        link: "abc123XYZ"              # bare bot CODE (username lives in src/config.ts)
+seasons:                              # optional: use INSTEAD of episodes for S1/S2/…
+  - season: 1
+    title: "Season 1"                 # optional label
+    status: "Completed"               # optional per-season status
+    totalEpisodes: 24                 # number, or "Unknown"
+    episodes:
+      - ep: 1
+        downloads:
+          - source: "Bot"
+            format: "mp4"
+            quality: "1080p"
+            size: "243 MB"
+            link: "abc123XYZ"
+  - season: 2
+    status: "Ongoing"
+    episodes:
+      - ep: 1
+        downloads:
+          - source: "Bot"
+            format: "mp4"
+            quality: "1080p"
+            size: "200 MB"
+            link: "xyz789ABC"
 ---
 
 Your synopsis goes here, in whatever language you like — this is a
@@ -58,26 +91,13 @@ npm run dev
 
 Then open the URL it prints (usually `http://localhost:4321`).
 
-## Deploying to GitHub Pages (free)
+## Deploying to Vercel
 
-1. Push this project to a new GitHub repository.
-2. In the repo, go to **Settings → Pages**, and under "Build and
-   deployment", set **Source** to **GitHub Actions**.
-3. If your repo is `github.com/<user>/<repo>` (not a `<user>.github.io`
-   repo), open `astro.config.mjs` and uncomment/set:
-   ```js
-   site: 'https://<user>.github.io',
-   base: '/<repo>',
-   ```
-   This makes internal links resolve correctly under the repo subpath.
-   Skip this step entirely if your repo is named `<user>.github.io`.
-4. Commit and push to `main` — the included workflow
-   (`.github/workflows/deploy.yml`) builds and deploys automatically.
-   You can also trigger it manually from the Actions tab
-   (`workflow_dispatch`).
-5. Your site will be live at `https://<user>.github.io/<repo>/` (or
-   `https://<user>.github.io/` for a `<user>.github.io` repo) within a
-   minute or two of the workflow finishing.
+1. Push to GitHub (`main` branch).
+2. Vercel Dashboard → Add New → Import this repo. Framework preset: `Astro`,
+   Build command: `astro build`, Output: `dist`.
+3. Every push to `main` redeploys automatically. No `site`/`base` config needed —
+   the app uses root-absolute URLs (`/anime/...`, `/images/...`).
 
 ## Notes on posters
 

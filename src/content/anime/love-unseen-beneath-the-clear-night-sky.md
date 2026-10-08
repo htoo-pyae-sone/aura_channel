@@ -16,7 +16,7 @@ episodes:
         format: "mp4"
         quality: "1080p"
         size: "207 MB"
-        link: "https://t.me/onlyforhtoo_bot?start=AABNbc2680ed9beb"
+        link: "GPvylVgduQJh"
   - ep: 2
     title: "Koharu Fuyutsuki"
     downloads:
@@ -24,7 +24,87 @@ episodes:
         format: "mp4"
         quality: "1080p"
         size: "203 MB"
-        link: "https://t.me/onlyforhtoo_bot?start=AABP2e6cd78ef878"
+        link: "AABP2e6cd78ef878"
+  - ep: 3
+    title: "An Encounter"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "207 MB"
+        link: "GPvylVgduQJh"
+  - ep: 4
+    title: "Koharu Fuyutsuki"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "203 MB"
+        link: "AABP2e6cd78ef878"
+  - ep: 5
+    title: "An Encounter"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "207 MB"
+        link: "GPvylVgduQJh"
+  - ep: 6
+    title: "Koharu Fuyutsuki"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "203 MB"
+        link: "AABP2e6cd78ef878"
+  - ep: 7
+    title: "An Encounter"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "207 MB"
+        link: "GPvylVgduQJh"
+  - ep: 8
+    title: "Koharu Fuyutsuki"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "203 MB"
+        link: "AABP2e6cd78ef878"
+  - ep: 9
+    title: "An Encounter"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "207 MB"
+        link: "GPvylVgduQJh"
+  - ep: 10
+    title: "Koharu Fuyutsuki"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "203 MB"
+        link: "AABP2e6cd78ef878"
+  - ep: 11
+    title: "An Encounter"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "207 MB"
+        link: "GPvylVgduQJh"
+  - ep: 12
+    title: "Koharu Fuyutsuki"
+    downloads:
+      - source: "Bot"
+        format: "mp4"
+        quality: "1080p"
+        size: "203 MB"
+        link: "AABP2e6cd78ef878"
 ---
 
 "လောကကြီးကနေ ပုန်းကွယ်ချင်နေသူနဲ့ လောကကြီးကို မမြင်ရတဲ့သူတို့ရဲ့  တွေ့ဆုံခြင်း..."
