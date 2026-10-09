@@ -107,10 +107,13 @@ const { title, description = 'Discover Anime' } = Astro.props;
         }
       });
 
+      // prefers-reduced-motion: the 'smooth' option ignores it, so ask first.
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
       scrollTopBtn.addEventListener('click', () => {
         window.scrollTo({
           top: 0,
-          behavior: 'smooth' 
+          behavior: reducedMotion.matches ? 'auto' : 'smooth',
         });
       });
 

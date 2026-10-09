@@ -2,9 +2,11 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 
-const entries = (await getCollection('anime')).sort((a, b) =>
-  a.data.title.localeCompare(b.data.title)
-);
+// zz-sample-* entries are local layout fixtures — built only in dev.
+const isSample = (id: string) => id.startsWith('zz-sample-');
+const entries = (await getCollection('anime'))
+  .filter((e) => import.meta.env.DEV || !isSample(e.id))
+  .sort((a, b) => a.data.title.localeCompare(b.data.title));
 
 const catalogData = entries.map((entry) => {
   // Card badge: latest season's count wins when seasons exist.
@@ -277,11 +279,15 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       return `<button type="button" class="ep-page-btn cat-num${active}" data-p="${i}" aria-label="Page ${i + 1}"${current}${disabled}>${i + 1}</button>`;
     }
 
+    // prefers-reduced-motion: the 'smooth' option ignores it, so ask first.
+    const scrollBehavior = () =>
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
     function gotoPage(p, scrollTop = true) {
       state.page = p;
       renderPage();
       if (scrollTop) {
-        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        grid.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
       }
     }
 
@@ -291,7 +297,7 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       state.search = searchInput.value;
       state.page = 0;
       renderPage();
-      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      grid.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
     });
 
     // Filter panel toggle (button lives in the site header).
@@ -304,6 +310,14 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       filterPanel.hidden = !open;
       filterToggle.setAttribute('aria-expanded', String(open));
     });
+
+    // Arriving from a deep link (/?year=2017, /?genre=Action, …) — show the
+    // active filters so the narrowed results are self-explanatory.
+    const deepLinked = ['q', 'type', 'status', 'genre', 'year'].some((k) => urlParams.get(k));
+    if (deepLinked) {
+      filterPanel.hidden = false;
+      filterToggle.setAttribute('aria-expanded', 'true');
+    }
 
     typeSelect.addEventListener('change', () => { state.type = typeSelect.value; state.page = 0; renderPage(); });
     statusSelect.addEventListener('change', () => { state.status = statusSelect.value; state.page = 0; renderPage(); });

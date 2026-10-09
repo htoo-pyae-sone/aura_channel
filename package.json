@@ -6,11 +6,16 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "smoke": "node scripts/smoke.mjs",
+    "fixture": "node scripts/make-sample-fixture.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "astro": "^7.3.7"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.0"
   }
 }

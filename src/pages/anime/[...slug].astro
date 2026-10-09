@@ -4,7 +4,10 @@ import Base from '../../layouts/Base.astro';
 import { downloadUrl } from '../../config';
 
 export async function getStaticPaths() {
-  const entries = await getCollection('anime');
+  // zz-sample-* entries are local layout fixtures — built only in dev.
+  const entries = (await getCollection('anime')).filter(
+    (e) => import.meta.env.DEV || !e.id.startsWith('zz-sample-')
+  );
   return entries.map((entry) => ({
     params: { slug: entry.id },
     props: { entry },
@@ -107,16 +110,30 @@ const EP_PAGE_SIZE = 10;
       )}
     </div>
 
+    {/* Deep links into the catalog's filters on the home page. */}
     <div class="detail-eyebrow">
-      {year && <span class="eyebrow-year">{year}</span>}
+      {year && <a class="eyebrow-year" href={`/?year=${year}`}>{year}</a>}
       {status && (
-        <span class={`eyebrow-status status-${status.toLowerCase()}`}>{status}</span>
+        <a
+          class={`eyebrow-status status-${status.toLowerCase()}`}
+          href={`/?status=${encodeURIComponent(status)}`}
+        >
+          {status}
+        </a>
       )}
-      {type && <span class="eyebrow-type">{type}</span>}
+      {type && (
+        <a class="eyebrow-type" href={`/?type=${encodeURIComponent(type)}`}>
+          {type}
+        </a>
+      )}
     </div>
 
     <ul class="genre-tags">
-      {genres.map((g) => <li>{g}</li>)}
+      {genres.map((g) => (
+        <li>
+          <a href={`/?genre=${encodeURIComponent(g)}`}>{g}</a>
+        </li>
+      ))}
     </ul>
   </div>
 
@@ -191,11 +208,11 @@ const EP_PAGE_SIZE = 10;
                 aria-label="Jump to episode number in the current season"
               />
             </span>
-          </div>
 
-          {/* Row 2: status + episode-count pills for the active season. The
-              script parks them here; without JS they stay in each panel. */}
-          <div class="season-meta" data-season-meta hidden></div>
+            {/* Row 2: status + episode-count pills for the active season. The
+                script parks them here; without JS they stay in each panel. */}
+            <div class="season-meta" data-season-meta hidden></div>
+          </div>
 
           <p class="ep-jump-msg" id="ep-jump-msg" role="status" hidden></p>
 
@@ -332,6 +349,74 @@ const EP_PAGE_SIZE = 10;
       const panels = Array.from(document.querySelectorAll('[data-season-panel]'));
       if (!panels.length || !jumpInput || !jumpMsg) return;
 
+      // prefers-reduced-motion: the 'smooth' option ignores it, so ask first.
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const scrollBehavior = () => (reducedMotion.matches ? 'auto' : 'smooth');
+
+      // Long season strips scroll sideways (11+ tabs on a phone) — keep the
+      // edge fade honest and bring the active tab into view.
+      const tabStrip = tabs[0]?.parentElement;
+
+      function syncTabStrip() {
+        if (!tabStrip) return;
+
+        // Does "tabs + jump" fit on one line? Measured from stable widths so
+        // the answer can't flip when the layout itself changes: tight → the
+        // jump shares the pills' line instead of being stranded alone.
+        const row = tabStrip.closest('.season-row');
+        if (row) {
+          const cs = getComputedStyle(tabStrip);
+          const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+          const gap = parseFloat(cs.columnGap) || 0;
+          const kids = [...tabStrip.children];
+          const stripContent =
+            pad + kids.reduce((sum, el) => sum + el.offsetWidth, 0) + gap * Math.max(0, kids.length - 1);
+          const jump = row.querySelector('.ep-jump');
+          const jumpW = jump ? jump.getBoundingClientRect().width : 0;
+          const fits = stripContent + gap + jumpW <= row.getBoundingClientRect().width + 1;
+          row.classList.toggle('is-tight', !fits);
+        }
+
+        const scrollable = tabStrip.scrollWidth - tabStrip.clientWidth > 2;
+        tabStrip.classList.toggle('is-scrollable', scrollable);
+        tabStrip.classList.toggle(
+          'at-end',
+          !scrollable || tabStrip.scrollLeft + tabStrip.clientWidth >= tabStrip.scrollWidth - 2
+        );
+      }
+
+      function revealTab(i) {
+        const el = tabs[i];
+        if (!el || !tabStrip) return;
+        const left = el.offsetLeft;
+        const right = left + el.offsetWidth;
+        if (left < tabStrip.scrollLeft) {
+          tabStrip.scrollTo({ left: Math.max(0, left - 12), behavior: scrollBehavior() });
+        } else if (right > tabStrip.scrollLeft + tabStrip.clientWidth) {
+          tabStrip.scrollTo({ left: right - tabStrip.clientWidth + 12, behavior: scrollBehavior() });
+        }
+      }
+
+      tabStrip?.addEventListener('scroll', syncTabStrip, { passive: true });
+      window.addEventListener('resize', syncTabStrip);
+      // Web fonts change tab widths after first paint.
+      document.fonts?.ready.then(syncTabStrip);
+      syncTabStrip();
+
+      // Paging swaps the list underneath you, so the view belongs at the START
+      // of the list — not parked on the pager, which is the last thing on the
+      // page (scrollIntoView on it could only ever land at the very bottom).
+      // The site header is sticky, so leave room for it.
+      function scrollToEpisodesTop() {
+        const section = document.querySelector('.episodes-section');
+        if (!section) return;
+        const header = document.querySelector('.site-header');
+        const sticky =
+          header && getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
+        const y = section.getBoundingClientRect().top + window.scrollY - sticky - 12;
+        window.scrollTo({ top: Math.max(0, y), behavior: scrollBehavior() });
+      }
+
       function initPanel(panel) {
         const items = Array.from(panel.querySelectorAll('.ep-accordion'));
         const pager = panel.querySelector('[data-ep-pager]');
@@ -361,11 +446,11 @@ const EP_PAGE_SIZE = 10;
         if (prev && next && pager) {
           prev.addEventListener('click', () => {
             show(page - 1);
-            pager.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            scrollToEpisodesTop();
           });
           next.addEventListener('click', () => {
             show(page + 1);
-            pager.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            scrollToEpisodesTop();
           });
         }
 
@@ -419,6 +504,7 @@ const EP_PAGE_SIZE = 10;
           // Roving tabindex: only the selected tab is in the tab order.
           tab.tabIndex = selected ? 0 : -1;
         });
+        revealTab(active);
         jumpInput.value = '';
         jumpInput.removeAttribute('aria-invalid');
         jumpMsg.hidden = true;
@@ -467,7 +553,7 @@ const EP_PAGE_SIZE = 10;
         show(Math.floor(idx / EP_PAGE_SIZE));
         const target = items[idx];
         target.open = true;
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
         const summary = target.querySelector('summary');
         if (summary) summary.focus({ preventScroll: true });
       }
@@ -477,6 +563,87 @@ const EP_PAGE_SIZE = 10;
         if (e.key === 'Enter') {
           jump();
         }
+      });
+
+      // --- Long-title glide -------------------------------------------------
+      // Titles are always one line + "…". To read the tail: on pointer
+      // devices, hovering or focusing the row glides the text sideways; on
+      // touch, opening the row glides it. It glides back on leave/collapse.
+      // This scrolls the title box itself (not a wrapper) — text-overflow
+      // only draws the ellipsis when the text is a direct child.
+      const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+      // `reducedMotion` is declared at the top of this script.
+      const glideRaf = new WeakMap();
+
+      function glideTitle(title, toEnd) {
+        const max = Math.max(0, title.scrollWidth - title.clientWidth);
+        const prev = glideRaf.get(title);
+        if (prev) cancelAnimationFrame(prev);
+        glideRaf.delete(title);
+
+        if (max < 4) {
+          // Fits now — nothing to reveal, and no leftover glide state.
+          title.classList.remove('gliding');
+          title.scrollLeft = 0;
+          return;
+        }
+
+        const from = title.scrollLeft;
+        const to = toEnd ? max : 0;
+        // The "…" hides everything past it in Chrome, so it can only be on at
+        // rest: swap it out when gliding starts, restore it once we're home.
+        if (toEnd) title.classList.add('gliding');
+        const done = () => {
+          glideRaf.delete(title);
+          if (!toEnd) title.classList.remove('gliding');
+        };
+        if (Math.abs(from - to) < 1) {
+          done();
+          return;
+        }
+        if (reducedMotion.matches) {
+          title.scrollLeft = to; // reveal without the travel
+          done();
+          return;
+        }
+        // ~0.4px/ms, clamped so short hops don't blink and long ones don't crawl.
+        const dur = Math.min(3000, Math.max(900, Math.abs(to - from) / 0.4));
+        const start = performance.now();
+        const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+        const step = (now) => {
+          const k = Math.min(1, (now - start) / dur);
+          title.scrollLeft = from + (to - from) * ease(k);
+          if (k < 1) glideRaf.set(title, requestAnimationFrame(step));
+          else done();
+        };
+        glideRaf.set(title, requestAnimationFrame(step));
+      }
+
+      document.querySelectorAll('.ep-accordion').forEach((row) => {
+        const title = row.querySelector('.ep-title');
+        if (!title) return;
+        const settle = () =>
+          glideTitle(title, row.open || (finePointer.matches && row.matches(':hover')));
+        const home = () => {
+          const prev = glideRaf.get(title);
+          if (prev) cancelAnimationFrame(prev);
+          glideRaf.delete(title);
+          if (!row.open && !row.matches(':hover')) {
+            title.scrollLeft = 0;
+            title.classList.remove('gliding');
+          }
+        };
+
+        row.addEventListener('toggle', settle);
+        if (finePointer.matches) {
+          row.addEventListener('pointerenter', settle);
+          row.addEventListener('pointerleave', settle);
+          row.addEventListener('focusin', settle);
+          row.addEventListener('focusout', settle);
+        }
+        window.addEventListener('resize', home);
+        // Web fonts change the measure after first paint.
+        document.fonts?.ready.then(home);
       });
     })();
   </script>
