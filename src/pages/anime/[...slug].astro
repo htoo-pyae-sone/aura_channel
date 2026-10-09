@@ -72,7 +72,6 @@ const EP_PAGE_SIZE = 10;
   <article class="detail">
     <div class="detail-poster-wrap">
       <img class="detail-poster" src={poster} alt={`${title} cover art`} />
-      {rating && <span class="rating-badge rating-badge-lg">★ {rating.toFixed(1)}</span>}
       {epValue && (
         <span class="episode-badge episode-badge-lg">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -82,28 +81,26 @@ const EP_PAGE_SIZE = 10;
           {epValue}
         </span>
       )}
-      {status && (
-        <span class={`status-badge status-badge-lg status-${status.toLowerCase()}`}>{status}</span>
-      )}
       {seasonBadge && (
         <span class="season-badge season-badge-lg">{seasonBadge}</span>
       )}
     </div>
 
-    <div>
+    <div class="content-wrapper">
       <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false;}">&larr; Back</a>
 
-      <p class="detail-eyebrow">
-        {type}
-        {year ? ` · ${year}` : ''}
-        {status ? ` · ${status}` : ''}
-      </p>
-      <h1 class="detail-title">{title}</h1>
-      {titleNative && <p class="detail-native">{titleNative}</p>}
+      <div class="detail-eyebrow">
+        {type && <span>{type}</span>}
+        {year && <span>{year}</span>}
+        {status && <span>{status}</span>}
+      </div>
 
       <ul class="genre-tags">
         {genres.map((g) => <li>{g}</li>)}
       </ul>
+
+      <h1 class="detail-title">{title}</h1>
+      {titleNative && <p class="detail-native">{titleNative}</p>}
 
       <div class="synopsis" id="synopsis">
         <Content />

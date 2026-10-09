@@ -187,7 +187,7 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       const epText = typeof e.totalEpisodes === 'number'
         ? `${e.totalEpisodes} EP`
         : (e.totalEpisodes || null);
-      const bits = [e.type, e.year, epText, seasonLabel(e.seasons)].filter(Boolean).join(' · ');
+      const bits = [e.type, epText].filter(Boolean).join(' · ');
       const ratingBadge = e.rating ? `<span class="rating-badge">★ ${e.rating.toFixed(1)}</span>` : '';
       const statusBadge = e.status ? `<span class="status-badge status-${e.status.toLowerCase()}">${e.status}</span>` : '';
 
