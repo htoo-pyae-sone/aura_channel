@@ -21,7 +21,6 @@ const {
   type,
   year,
   status,
-  rating,
   totalEpisodes,
   episodes,
   seasons,
@@ -34,8 +33,13 @@ const sortedSeasons = seasons?.length
   : [];
 const latestSeason = sortedSeasons.length ? sortedSeasons[sortedSeasons.length - 1] : null;
 const badgeTotal = latestSeason?.totalEpisodes ?? totalEpisodes;
+// "Unknown" is a real value but a useless badge — hide it instead.
 const epValue =
-  typeof badgeTotal === 'number' ? `${badgeTotal} EP` : badgeTotal || null;
+  typeof badgeTotal === 'number'
+    ? `${badgeTotal} EP`
+    : badgeTotal && badgeTotal !== 'Unknown'
+      ? badgeTotal
+      : null;
 
 const seasonList = sortedSeasons.length
   ? sortedSeasons.map((s) => ({
@@ -70,8 +74,16 @@ const EP_PAGE_SIZE = 10;
 
 <Base title={`${title} — aniXsubs`}>
   <article class="detail">
+  <div class="detail-side">
     <div class="detail-poster-wrap">
-      <img class="detail-poster" src={poster} alt={`${title} cover art`} />
+      <img
+        class="detail-poster"
+        src={poster}
+        alt={`${title} cover art`}
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      />
       {epValue && (
         <span class="episode-badge episode-badge-lg">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -86,20 +98,21 @@ const EP_PAGE_SIZE = 10;
       )}
     </div>
 
-    <div class="content-wrapper">
-      <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false;}">&larr; Back</a>
+    <div class="detail-eyebrow">
+      {type && <span>{type}</span>}
+      {year && <span>{year}</span>}
+      {status && <span>{status}</span>}
+    </div>
 
-      <div class="detail-eyebrow">
-        {type && <span>{type}</span>}
-        {year && <span>{year}</span>}
-        {status && <span>{status}</span>}
-      </div>
+    <ul class="genre-tags">
+      {genres.map((g) => <li>{g}</li>)}
+    </ul>
+  </div>
 
-      <ul class="genre-tags">
-        {genres.map((g) => <li>{g}</li>)}
-      </ul>
+  <div class="content-wrapper">
+    <a class="back-link" href="/" onclick="if(history.length>1){history.back();return false;}">&larr; Back</a>
 
-      <h1 class="detail-title">{title}</h1>
+    <h1 class="detail-title">{title}</h1>
       {titleNative && <p class="detail-native">{titleNative}</p>}
 
       <div class="synopsis" id="synopsis">
@@ -134,9 +147,12 @@ const EP_PAGE_SIZE = 10;
                 <button
                   type="button"
                   role="tab"
+                  id={`${s.key}-tab`}
                   class="season-tab"
                   data-season-tab={s.key}
+                  aria-controls={`${s.key}-panel`}
                   aria-selected={i === 0 ? 'true' : 'false'}
+                  tabindex={i === 0 ? '0' : '-1'}
                 >
                   {s.tab}
                 </button>
@@ -147,7 +163,13 @@ const EP_PAGE_SIZE = 10;
           <p class="ep-jump-msg" id="ep-jump-msg" role="status" hidden></p>
 
           {seasonList.map((s, i) => (
-            <div class="season-panel" data-season-panel={s.key}>
+            <div
+              class="season-panel"
+              id={`${s.key}-panel`}
+              role="tabpanel"
+              aria-labelledby={`${s.key}-tab`}
+              data-season-panel={s.key}
+            >
               {s.meta && <p class="season-meta">{s.meta}</p>}
 
               <div class="episodes-list">
@@ -298,8 +320,11 @@ const EP_PAGE_SIZE = 10;
           panel.hidden = j !== active;
         });
         tabs.forEach((tab, j) => {
-          tab.setAttribute('aria-selected', j === active ? 'true' : 'false');
-          tab.classList.toggle('active', j === active);
+          const selected = j === active;
+          tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+          tab.classList.toggle('active', selected);
+          // Roving tabindex: only the selected tab is in the tab order.
+          tab.tabIndex = selected ? 0 : -1;
         });
         jumpInput.value = '';
         jumpInput.removeAttribute('aria-invalid');
@@ -308,6 +333,20 @@ const EP_PAGE_SIZE = 10;
 
       tabs.forEach((tab, i) => {
         tab.addEventListener('click', () => selectSeason(i));
+      });
+
+      // Arrow-key navigation across the tablist (WAI-ARIA tabs pattern).
+      const tablist = tabs[0]?.parentElement;
+      tablist?.addEventListener('keydown', (e) => {
+        const keys = { ArrowRight: 1, ArrowLeft: -1 };
+        let next;
+        if (e.key in keys) next = active + keys[e.key];
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = tabs.length - 1;
+        else return;
+        e.preventDefault();
+        selectSeason(next);
+        tabs[active].focus();
       });
 
       function jump() {

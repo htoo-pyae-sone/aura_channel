@@ -7,7 +7,7 @@ type: "Series"
 year: 2026
 status: "Ongoing"
 rating: 8.43
-totalEpisodes: 24
+totalEpisodes: 1224
 episodes:
   - ep: 1
     title: "Smoking Behind the Supermarket with You"
