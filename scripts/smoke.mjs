@@ -325,7 +325,9 @@ async function runChecks(browser) {
   });
 
   // --- 6. deep links -------------------------------------------------------
-  await check('deep links land on the catalog with filters open', async () => {
+  // Deep links narrow the catalog but must NOT yank the filter panel open —
+  // the standing chip row names what's active instead.
+  await check('deep links narrow the catalog and name the filter, panel closed', async () => {
     const cases = [
       ['/?genre=Action', 'genre', 'Action'],
       ['/?year=2025', 'year', '2025'],
@@ -336,6 +338,9 @@ async function runChecks(browser) {
       const p = await open(browser, url);
       const r = await p.evaluate(() => ({
         open: !document.getElementById('filter-panel').hidden,
+        rowHidden: document.getElementById('active-filters').hidden,
+        chips: [...document.querySelectorAll('#active-filters .af-chip')]
+          .map((c) => c.textContent.replace(/\s+/g, ' ').trim()),
         genre: document.getElementById('filter-genre').value,
         year: document.getElementById('filter-year').value,
         search: document.querySelector('.header-search-input')?.value || '',
@@ -343,7 +348,9 @@ async function runChecks(browser) {
         cards: document.querySelectorAll('#catalog-grid > *').length,
       }));
       await p.close();
-      assert(r.open, `${url}: filter panel closed`);
+      assert(!r.open, `${url}: filter panel was opened unasked`);
+      assert(!r.rowHidden, `${url}: no filter chip row`);
+      assert(r.chips.length === 1, `${url}: chips=[${r.chips}]`);
       if (kind === 'genre') assert(r.genre === value, `${url}: select=${r.genre}`);
       if (kind === 'year') assert(r.year === value, `${url}: select=${r.year}`);
       if (kind === 'search') assert(r.search === value, `${url}: input=${r.search}`);

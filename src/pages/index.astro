@@ -43,41 +43,81 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
 
   <div class="filter-panel" id="filter-panel" hidden>
     <div class="select-row">
-      <select id="filter-type" class="filter-select" aria-label="Filter by type">
-        <option value="All">All Types</option>
-        <option value="Movie">Movie</option>
-        <option value="Series">Series</option>
-      </select>
+      <!-- Each field holds two states and swaps between them:
+             unset  -> a picker reading  Type ⌄
+             chosen -> a tag reading      Movie ×
+           The <select> is invisible and stretched over the whole pill, so the
+           field draws the display itself (label + chevron) while the menu still
+           lists real option text — "All / Movie / Series", not a blank row.
+           Clicking anywhere on the pill opens it.
+           Page is the exception — it's a setting, not a filter, so it never
+           becomes a tag; its label carries the value instead (Page/10). -->
+      <!-- "All" is hidden, not removed: the script still needs it as the
+           value for an unset field, but it never renders in the menu. You
+           don't pick "All" to clear a filter — you click × on its tag. -->
+      <div class="fp-field" data-fp="type">
+        <span class="fp-label" aria-hidden="true">Type</span>
+        <select id="filter-type" class="filter-select" aria-label="Filter by type">
+          <option value="All" hidden>All</option>
+          <option value="Movie">Movie</option>
+          <option value="Series">Series</option>
+        </select>
+        <button type="button" class="fp-tag" data-fp-drop="type" hidden>
+          <span class="fp-tag-text"></span><span class="af-x" aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
-      <select id="filter-status" class="filter-select" aria-label="Filter by status">
-        <option value="All">All Status</option>
-        <option value="Ongoing">Ongoing</option>
-        <option value="Completed">Completed</option>
-        <option value="Upcoming">Upcoming</option>
-      </select>
+      <div class="fp-field" data-fp="status">
+        <span class="fp-label" aria-hidden="true">Status</span>
+        <select id="filter-status" class="filter-select" aria-label="Filter by status">
+          <option value="All" hidden>All</option>
+          <option value="Ongoing">Ongoing</option>
+          <option value="Completed">Completed</option>
+          <option value="Upcoming">Upcoming</option>
+        </select>
+        <button type="button" class="fp-tag" data-fp-drop="status" hidden>
+          <span class="fp-tag-text"></span><span class="af-x" aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
-      <select id="filter-genre" class="filter-select" aria-label="Filter by genre">
-        <option value="All">All Genres</option>
-        {uniqueGenres.map((g) => <option value={g}>{g}</option>)}
-      </select>
+      <div class="fp-field" data-fp="genre">
+        <span class="fp-label" aria-hidden="true">Genre</span>
+        <select id="filter-genre" class="filter-select" aria-label="Filter by genre">
+          <option value="All" hidden>All</option>
+          {uniqueGenres.map((g) => <option value={g}>{g}</option>)}
+        </select>
+        <button type="button" class="fp-tag" data-fp-drop="genre" hidden>
+          <span class="fp-tag-text"></span><span class="af-x" aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
-      <select id="filter-year" class="filter-select" aria-label="Filter by year">
-        <option value="All">All Years</option>
-        {uniqueYears.map((y) => <option value={y}>{y}</option>)}
-      </select>
+      <div class="fp-field" data-fp="year">
+        <span class="fp-label" aria-hidden="true">Year</span>
+        <select id="filter-year" class="filter-select" aria-label="Filter by year">
+          <option value="All" hidden>All</option>
+          {uniqueYears.map((y) => <option value={y}>{y}</option>)}
+        </select>
+        <button type="button" class="fp-tag" data-fp-drop="year" hidden>
+          <span class="fp-tag-text"></span><span class="af-x" aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
-      <select id="page-size" class="filter-select" aria-label="Cards per page">
-        <option value="10">10 / page</option>
-        <option value="20">20 / page</option>
-        <option value="50">50 / page</option>
-      </select>
-
-      <button type="button" id="clear-filters" class="clear-btn">Clear</button>
+      <!-- Page: label reads "Page/10" and follows the select. -->
+      <div class="fp-field fp-field--pref">
+        <span class="fp-label fp-label--val" aria-hidden="true">Page/10</span>
+        <select id="page-size" class="filter-select" aria-label="Cards per page">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
     </div>
   </div>
 
-  <div class="catalog-grid" id="catalog-grid"></div>
-  <p class="empty-state" id="empty-state" hidden>No titles match these filters.</p>
+  <div class="active-filters" id="active-filters" hidden></div>
+
+  <div class="catalog-grid" id="catalog-grid" tabindex="-1"></div>
+  <div class="empty-state" id="empty-state" tabindex="-1" hidden></div>
 
   <div class="ep-pager ep-pager-bottom catalog-pager" id="cat-pager" hidden>
     <p class="ep-count" id="cat-count" aria-live="polite"></p>
@@ -95,7 +135,11 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
   <script>
     const entries = JSON.parse(document.getElementById('catalog-data').textContent);
     const grid = document.getElementById('catalog-grid');
+    const header = document.querySelector('.site-header');
     const emptyState = document.getElementById('empty-state');
+    const activeFilters = document.getElementById('active-filters');
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterPanel = document.getElementById('filter-panel');
     const pager = document.getElementById('cat-pager');
     const count = document.getElementById('cat-count');
     const firstBtn = document.getElementById('cat-first');
@@ -110,7 +154,6 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
     const statusSelect = document.getElementById('filter-status');
     const genreSelect = document.getElementById('filter-genre');
     const yearSelect = document.getElementById('filter-year');
-    const clearBtn = document.getElementById('clear-filters');
     const pageSizeSelect = document.getElementById('page-size');
 
     // Cards per page: saved choice wins, else 20 on desktop / 10 on phones.
@@ -122,10 +165,14 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
         return 0;
       }
     }
+    // Page size: saved choice wins, else 20 on desktop / 10 on phones.
     let pageSize = readStoredSize();
     if (!pageSize) {
       pageSize = window.matchMedia('(min-width: 1024px)').matches ? 20 : 10;
     }
+
+    // Page's label is its value — "Page/10" — since Page never becomes a tag.
+    const pageLabel = document.querySelector('.fp-label--val');
 
     const urlParams = new URLSearchParams(window.location.search);
     const urlPage = parseInt(urlParams.get('page') || '', 10);
@@ -174,6 +221,120 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
         const yearOk = state.year === 'All' || String(e.year) === state.year;
         return searchOk && typeOk && statusOk && genreOk && yearOk;
       });
+    }
+
+    // Why is it empty? The search term is judged on its own so we can tell
+    // "your query matched nothing" apart from "your query matched, but the
+    // filters are hiding the results" — the second case is a silent failure
+    // worth calling out with a one-click way out.
+    function searchOnlyMatches() {
+      const q = state.search.trim().toLowerCase();
+      if (!q) return [];
+      return entries.filter((e) => e.title.toLowerCase().includes(q));
+    }
+
+    // `prefix` names the filter's kind. It's no longer shown — the pill shape
+    // and × already say "this is a removable filter" — but it stays in the
+    // aria-label, where a bare "Ongoing" would be unexplained.
+    function activeConstraints() {
+      const out = [];
+      if (state.search.trim()) out.push({ key: 'search', label: state.search.trim(), prefix: '' });
+      if (state.type !== 'All') out.push({ key: 'type', label: state.type, prefix: 'Type' });
+      if (state.status !== 'All') out.push({ key: 'status', label: state.status, prefix: 'Status' });
+      if (state.genre !== 'All') out.push({ key: 'genre', label: state.genre, prefix: 'Genre' });
+      if (state.year !== 'All') out.push({ key: 'year', label: state.year, prefix: 'Year' });
+      return out;
+    }
+
+    // Standing filter row: deep links and filter changes narrow the catalog,
+    // but opening the whole panel unprompted was intrusive. Name only what's
+    // actually active, with a way to drop each one.
+    //
+    // Yields to the panel while it's open — the pills there already highlight
+    // every active filter, so showing both just repeats the same list.
+    function renderActiveFilters() {
+      const constraints = activeConstraints();
+      const show = constraints.length > 0 && filterPanel.hidden;
+      activeFilters.hidden = !show;
+      if (!show) {
+        if (!constraints.length) activeFilters.innerHTML = '';
+        return;
+      }
+      const chips = constraints
+        .map((c) => `<button type="button" class="af-chip" data-af-drop="${c.key}"
+            aria-label="Remove filter ${escapeHTML(c.prefix ? c.prefix + ': ' : '')}${escapeHTML(c.label)}">${escapeHTML(c.label)}<span class="af-x" aria-hidden="true">&times;</span></button>`)
+        .join('');
+      // Chips scroll in their own strip so the row stays one line at any
+      // width — same idea as the season strip. No Clear button: every
+      // constraint carries its own ×, and there are rarely more than three.
+      activeFilters.innerHTML = `<div class="af-scroll">${chips}</div>`;
+      syncAfScroll();
+    }
+
+    // Edge fade = "more filters this way", only when the strip overflows.
+    function syncAfScroll() {
+      const sc = activeFilters.querySelector('.af-scroll');
+      if (!sc) return;
+      const canScroll = sc.scrollWidth - sc.clientWidth > 1;
+      sc.classList.toggle('is-scrollable', canScroll);
+      sc.classList.toggle(
+        'at-end',
+        !canScroll || sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 1
+      );
+    }
+
+    activeFilters.addEventListener('scroll', syncAfScroll, { passive: true });
+    window.addEventListener('resize', syncAfScroll);
+
+    const EMPTY_ICON = `<svg class="empty-ico" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>`;
+
+    function renderEmpty() {
+      const constraints = activeConstraints();
+      const soloHits = searchOnlyMatches();
+
+      // Nothing set at all: the catalog itself is empty, filters aren't to blame.
+      if (!constraints.length) {
+        emptyState.innerHTML = `${EMPTY_ICON}
+          <p class="empty-title">Nothing here yet</p>
+          <p class="empty-sub">No titles have been added so far — check back soon.</p>`;
+        return;
+      }
+
+      // The query matched, but the filters are hiding those results.
+      if (soloHits.length && constraints.some((c) => c.key !== 'search')) {
+        const n = soloHits.length;
+        emptyState.innerHTML = `${EMPTY_ICON}
+          <p class="empty-title">Hidden by your filters</p>
+          <p class="empty-sub">${n} ${n === 1 ? 'title matches' : 'titles match'}
+            &ldquo;${escapeHTML(state.search.trim())}&rdquo; &mdash; your filters are hiding
+            ${n === 1 ? 'it' : 'them'}.</p>
+          <button type="button" class="empty-cta" data-empty-show>Show them anyway</button>`;
+        return;
+      }
+
+      // A search term with no filters: nothing to remove, so don't pretend
+      // there is — name the miss and offer to clear just the query.
+      if (constraints.length === 1 && constraints[0].key === 'search') {
+        emptyState.innerHTML = `${EMPTY_ICON}
+          <p class="empty-title">No title matches</p>
+          <p class="empty-sub">Nothing in the catalog matches
+            &ldquo;${escapeHTML(state.search.trim())}&rdquo;. Check the spelling, or
+            clear it to browse everything.</p>
+          <button type="button" class="empty-cta" data-empty-drop="search">Clear search</button>`;
+        return;
+      }
+
+      // Otherwise: name each culprit and let it be dropped one at a time.
+      const chips = constraints
+        .map((c) => `<button type="button" class="empty-chip" data-empty-drop="${c.key}"
+            aria-label="Remove filter ${escapeHTML(c.label)}">${escapeHTML(c.label)}
+            <span class="empty-chip-x" aria-hidden="true">&times;</span></button>`)
+        .join('');
+      emptyState.innerHTML = `${EMPTY_ICON}
+        <p class="empty-title">Nothing matches yet</p>
+        <p class="empty-sub">No titles match all of these at once &mdash; remove one to widen the search:</p>
+        <div class="empty-chips">${chips}</div>
+        <button type="button" class="empty-cta" data-empty-clear>Clear all filters</button>`;
     }
 
     function escapeHTML(str) {
@@ -241,6 +402,12 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       const isEmpty = currentFiltered.length === 0;
       emptyState.hidden = !isEmpty;
       pager.hidden = isEmpty;
+      if (isEmpty) renderEmpty();
+      // The empty state names the culprits itself; showing both would repeat.
+      if (isEmpty) activeFilters.hidden = true;
+      else renderActiveFilters();
+      // Keep the panel's active-pill highlight in step with the state.
+      syncSelectStates();
 
       if (!isEmpty) {
         const end = Math.min(start + pageSize, currentFiltered.length);
@@ -283,11 +450,21 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
     const scrollBehavior = () =>
       window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 
+    // scrollIntoView parks the grid at viewport y=0, but the site header is
+    // sticky — so the first row of results slid underneath it. Leave room for
+    // the header (same approach as the detail page's scrollToEpisodesTop).
+    function scrollToGridTop() {
+      const sticky =
+        getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
+      const y = grid.getBoundingClientRect().top + window.scrollY - sticky - 12;
+      window.scrollTo({ top: Math.max(0, y), behavior: scrollBehavior() });
+    }
+
     function gotoPage(p, scrollTop = true) {
       state.page = p;
       renderPage();
       if (scrollTop) {
-        grid.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+        scrollToGridTop();
       }
     }
 
@@ -297,27 +474,24 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       state.search = searchInput.value;
       state.page = 0;
       renderPage();
-      grid.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+      scrollToGridTop();
     });
 
     // Filter panel toggle (button lives in the site header).
-    const filterToggle = document.getElementById('filter-toggle');
-    const filterPanel = document.getElementById('filter-panel');
-
     filterToggle.hidden = false;
     filterToggle.addEventListener('click', () => {
       const open = filterPanel.hidden;
       filterPanel.hidden = !open;
       filterToggle.setAttribute('aria-expanded', String(open));
+      // The chip row yields to the panel, so it has to come back on close.
+      renderActiveFilters();
     });
 
-    // Arriving from a deep link (/?year=2017, /?genre=Action, …) — show the
-    // active filters so the narrowed results are self-explanatory.
-    const deepLinked = ['q', 'type', 'status', 'genre', 'year'].some((k) => urlParams.get(k));
-    if (deepLinked) {
-      filterPanel.hidden = false;
-      filterToggle.setAttribute('aria-expanded', 'true');
-    }
+    // A deep link (/?year=2017, /?genre=Action, /?q=…) narrows the catalog, but
+    // popping the whole filter panel open unprompted was intrusive — on mobile
+    // it shoved the results down the page. The standing chip row above the grid
+    // names what's active instead; the panel only opens on request.
+    renderActiveFilters();
 
     typeSelect.addEventListener('change', () => { state.type = typeSelect.value; state.page = 0; renderPage(); });
     statusSelect.addEventListener('change', () => { state.status = statusSelect.value; state.page = 0; renderPage(); });
@@ -332,6 +506,7 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
         /* private mode etc. — choice just won't persist */
       }
       pageSizeSelect.value = String(pageSize);
+      // syncSelectStates() rewrites "Page/10" -> "Page/20" from this.
       state.page = 0;
       renderPage();
     }
@@ -340,10 +515,108 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       setPageSize(parseInt(pageSizeSelect.value, 10));
     });
 
-    clearBtn.addEventListener('click', () => {
+    // A tag's × drops just that filter and hands the field back to its
+    // picker. Focus stays on the field, which is now a select again.
+    document.querySelector('.select-row').addEventListener('click', (e) => {
+      const tag = e.target.closest('[data-fp-drop]');
+      if (!tag) return;
+      const key = tag.dataset.fpDrop;
+      state[key] = 'All';
+      state.page = 0;
+      syncSelects();
+      renderPage();
+      const field = document.querySelector(`.fp-field[data-fp="${key}"]`);
+      field.querySelector('select').focus({ preventScroll: true });
+    });
+
+    // The panel no longer carries a Clear button — the standing chip row owns
+    // clearing. Both it and the empty state call this.
+    function clearAll() {
       state.search = ''; state.type = 'All'; state.status = 'All'; state.genre = 'All'; state.year = 'All'; state.page = 0;
       searchInput.value = ''; typeSelect.value = 'All'; statusSelect.value = 'All'; genreSelect.value = 'All'; yearSelect.value = 'All';
       renderPage();
+    }
+
+    // Swap each field between its two states: a picker (Type ⌄) while unset,
+    // a tag (Movie ×) once chosen. Page is excluded — it's a setting, so it
+    // keeps its picker and only its label changes to carry the value.
+    function syncSelectStates() {
+      const map = [
+        ['type', typeSelect],
+        ['status', statusSelect],
+        ['genre', genreSelect],
+        ['year', yearSelect],
+      ];
+      for (const [key, sel] of map) {
+        const field = document.querySelector(`.fp-field[data-fp="${key}"]`);
+        const chosen = sel.value !== 'All';
+        field.classList.toggle('is-set', chosen);
+        sel.classList.toggle('is-active', chosen);
+        const tag = field.querySelector('.fp-tag');
+        tag.hidden = !chosen;
+        if (chosen) {
+          const text = field.querySelector('.fp-tag-text');
+          text.textContent = sel.value;
+          tag.setAttribute('aria-label', `Remove ${key} filter ${sel.value}`);
+        }
+      }
+      // Page/10 — the label is the value, since Page never becomes a tag.
+      pageLabel.textContent = `Page/${pageSize}`;
+    }
+
+    // Empty-state controls: drop one constraint, or drop every filter while
+    // keeping the query that actually matched.
+    const syncSelects = () => {
+      typeSelect.value = state.type;
+      statusSelect.value = state.status;
+      genreSelect.value = state.genre;
+      yearSelect.value = state.year;
+      searchInput.value = state.search;
+    };
+
+    emptyState.addEventListener('click', (e) => {
+      const drop = e.target.closest('[data-empty-drop]');
+      if (drop) {
+        const k = drop.dataset.emptyDrop;
+        if (k === 'search') state.search = '';
+        else state[k] = 'All';
+        state.page = 0;
+        syncSelects();
+        renderPage();
+        // The chip is gone after re-render — don't strand the keyboard on
+        // <body>. Stay in the empty state, or move to the results it produced.
+        if (!emptyState.hidden) emptyState.focus({ preventScroll: true });
+        else grid.focus({ preventScroll: true });
+        return;
+      }
+      if (e.target.closest('[data-empty-show]')) {
+        // The query works — the filters are the problem. Keep the search.
+        state.type = 'All'; state.status = 'All'; state.genre = 'All'; state.year = 'All';
+        state.page = 0;
+        syncSelects();
+        renderPage();
+        return;
+      }
+      if (e.target.closest('[data-empty-clear]')) clearAll();
+    });
+
+    // Standing chip row: drop one constraint, or drop them all.
+    activeFilters.addEventListener('click', (e) => {
+      const drop = e.target.closest('[data-af-drop]');
+      if (drop) {
+        const k = drop.dataset.afDrop;
+        if (k === 'search') state.search = '';
+        else state[k] = 'All';
+        state.page = 0;
+        syncSelects();
+        renderPage();
+        // The chip is gone after re-render — keep the keyboard in the row if
+        // it survived, otherwise move to the results it produced.
+        const next = activeFilters.querySelector('.af-chip');
+        if (!activeFilters.hidden && next) next.focus({ preventScroll: true });
+        else grid.focus({ preventScroll: true });
+        return;
+      }
     });
 
     prevBtn.addEventListener('click', () => gotoPage(state.page - 1));

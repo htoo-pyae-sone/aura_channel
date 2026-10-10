@@ -19,6 +19,11 @@
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
+  /* One height for every pill that carries a filter or a value: the panel's
+     picker, its tag, the standing chip row, and the empty-state chips. These
+     had drifted to 35/35/28/28 and read as two different components. */
+  --chip-h: 1.875rem;
+
   color-scheme: dark;
 }
 
@@ -358,95 +363,386 @@ a:hover {
   flex: none;
 }
 
+/* 0.9rem on all four sides of the pills. The top keeps them clear of the
+   sticky header and the bottom mirrors it — which is also what the standing
+   chip row's margins give. Without the bottom padding the grid sat flush
+   against the pills while the row left 14px, so toggling the panel open
+   jumped the posters up by 14px. */
 .filter-panel {
-  padding: 0.9rem clamp(1.25rem, 4vw, 3rem) 0;
+  padding: 0.9rem clamp(1.25rem, 4vw, 3rem);
 }
 
 .filter-panel[hidden] {
   display: none;
 }
 
+/* Filter panel: each field hugs its contents. Unset it reads  Type ⌄  (label,
+   then room for the chevron); chosen it hands the box to the tag,  Movie ×.
+   Nothing is padded out to a shared width, so there's no dead space — the
+   tradeoff is that the two states are different widths, so the row reflows
+   when a value is picked. */
 .select-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
-@media (max-width: 768px) {
-  .select-row {
-    flex-direction: column;
-    width: 100%;
-    gap: 0.25rem;
-    /* Further reduced gap for mobile */
-  }
+.fp-field {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 0 0 auto;
+  position: relative;
+  /* Same height as every other filter pill — see --chip-h. */
+  height: var(--chip-h);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-raised);
+  /* Right padding is the chevron's parking space — the chevron itself is
+     absolutely positioned and takes no layout room. */
+  padding: 0 1.6rem 0 0.75rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.filter-select {
-  appearance: none;
-  background-color: var(--bg-raised);
+/* The chevron lives on the field, not the select — the select is invisible
+   (see .filter-select) so it can't draw anything the user is meant to see. */
+.fp-field::after {
+  content: '';
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 7px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 12 8\' fill=\'none\'%3E%3Cpath d=\'M1 1.5 6 6.5 11 1.5\' stroke=\'%238B87A0\' stroke-width=\'1.4\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3C/path%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.7rem center;
   background-size: 10px 7px;
-  border: 1px solid var(--line);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 0.7rem;
-  border-radius: 4px;
-  padding: 0.55rem 2rem 0.55rem 0.75rem;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
+  pointer-events: none;
 }
 
-@media (max-width: 768px) {
-  .select-row .filter-select {
-    width: 100%;
-    /* Below 16px iOS may auto-zoom on tap — owner's call, kept small. */
-    font-size: 14px;
-    padding-top: 0.4rem;
-    padding-bottom: 0.4rem;
+.fp-field:focus-within {
+  border-color: var(--accent);
+}
+
+.fp-label {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Page's label carries its value ("Page/10") instead of ever becoming a tag. */
+.fp-label--val {
+  color: var(--text);
+}
+
+/* A chosen field drops its own border, background and padding entirely and
+   lets the tag define the box. border-width goes to 0 (not just transparent)
+   so the field's full height is available to stretch into — otherwise the
+   tag's own border sits inside the field's and reads 2px shorter than the
+   picker next to it. */
+.fp-field.is-set {
+  border-width: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.fp-field.is-set .fp-label,
+.fp-field.is-set .filter-select {
+  display: none;
+}
+
+.fp-tag {
+  display: none;
+  align-items: center;
+  /* Fill the field's height so the tag's visible pill matches the picker's
+     outer height exactly, rather than sitting inside it as a smaller box. */
+  align-self: stretch;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.55rem 0.3rem 0.7rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fp-field.is-set .fp-tag {
+  display: inline-flex;
+}
+
+@media (hover: hover) {
+  .fp-tag:hover {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.22);
+  }
+
+  .fp-tag:hover .af-x {
+    background: var(--accent);
+    color: var(--bg);
   }
 }
 
-.filter-select:hover {
-  border-color: var(--accent);
-}
-
-.filter-select:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.clear-btn {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  border-radius: 4px;
-  padding: 0.55rem 0.75rem;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color 0.2s ease;
-}
-
-.clear-btn:hover {
-  color: var(--accent);
-}
-
-.clear-btn:focus-visible {
+.fp-tag:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
+/* Invisible and stretched across the whole pill. The field draws what's seen
+   (label, chevron, or the tag); this only supplies the native menu, which
+   still lists real option text. Covering the pill also makes the whole thing
+   the click target rather than just a sliver of space beside the label. */
+.filter-select {
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* No grid override here. A 1fr 1fr grid hands each pill a half-width column
+   while the pills hug their content, so the leftover column width became a
+   hole — 92px beside TYPE, 265px beside PAGE at 390. Falling back to the
+   base flex row packs them against each other and only breaks the line when
+   they genuinely run out of room: 3 lines became 2 at 390, 5 became 2 at
+   320. */
+@media (max-width: 768px) {
+  .fp-label {
+    /* Tighter tracking — STATUS is 6 chars and would otherwise crowd the
+       chevron when two pills share a line. */
+    letter-spacing: 0.05em;
+  }
+}
+
+/* A tag replaces both the label and the chevron. Focus is signalled by the
+   field's own :focus-within rule, since the select is invisible. */
+.fp-field.is-set::after {
+  display: none;
+}
+
 /* ---------- Empty state ---------- */
+/* Empty state: a tinted card that names WHY the catalog came back empty and
+   offers the matching way out — per-filter chips, or "show them anyway" when
+   the search itself matched but the filters hid the results. */
 .empty-state {
-  padding: 2rem clamp(1.25rem, 4vw, 3rem);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
+  margin: 2.5rem clamp(1.25rem, 4vw, 3rem) 1rem;
+  padding: 2rem 1.25rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.06);
   text-align: center;
+}
+
+.empty-state:focus {
+  outline: none;
+}
+
+.empty-ico {
+  color: var(--label);
+  margin-bottom: 0.75rem;
+}
+
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin: 0 0 0.45rem;
+}
+
+.empty-sub {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 1.1rem;
+}
+
+.empty-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+}
+
+.empty-chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--chip-h);
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0 0.55rem 0 0.7rem;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.empty-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.3);
+  color: var(--label);
+  font-size: 0.7rem;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.empty-cta {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  background: transparent;
+  color: var(--label);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .empty-chip:hover {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.22);
+  }
+
+  .empty-chip:hover .empty-chip-x {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .empty-cta:hover {
+    background: rgba(var(--accent-rgb), 0.14);
+    border-color: var(--accent);
+  }
+}
+
+.empty-chip:focus-visible,
+.empty-cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Standing filter row above the grid: names only the constraints that are
+   actually active, so a deep link explains itself without opening the whole
+   filter panel. Hides itself entirely when nothing is set. */
+.active-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* Same 0.9rem lead-in as .filter-panel, so the row doesn't butt against
+     the sticky header's border. Bottom margin mirrors it — but only when the
+     grid isn't already padded (see the sibling rule below). */
+  margin: 0.9rem clamp(1.25rem, 4vw, 3rem);
+}
+
+/* `display: flex` above outranks the UA's [hidden] rule, so the row would
+   stay in flow with its margins when "hidden" — inflating the no-filter gap
+   by 28px. Same explicit override .filter-panel already needs. */
+.active-filters[hidden] {
+  display: none;
+}
+
+/* The chips scroll in their own strip so the row stays ONE line at any
+   width — wrapping to three lines on mobile shoved the posters down 39px. */
+.af-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0; /* shrink → the strip scrolls instead of the page */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.af-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Edge fade = "more filters this way", only when the strip actually overflows. */
+.af-scroll.is-scrollable:not(.at-end) {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+}
+
+/* Whichever surface is showing supplies its own 14px separation, so pull the
+   grid's 1.5rem top padding back out in both cases — otherwise the padding
+   stacks on top of it and the gap to the posters reads 38px against 14px
+   above the pills. The row needs `+` (it sits directly before the grid); the
+   panel needs `~`, since the row's markup lies between them even while it's
+   hidden. */
+.active-filters:not([hidden]) + .catalog-grid,
+.filter-panel:not([hidden]) ~ .catalog-grid {
+  padding-top: 0;
+}
+
+.af-chip {
+  display: inline-flex;
+  flex: none; /* don't compress — let the strip scroll instead */
+  align-items: center;
+  height: var(--chip-h);
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0 0.55rem 0 0.7rem;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.af-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.3);
+  color: var(--label);
+  font-size: 0.7rem;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .af-chip:hover {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.22);
+  }
+
+  .af-chip:hover .af-x {
+    background: var(--accent);
+    color: var(--bg);
+  }
+}
+
+.af-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ---------- Catalog pager (bottom bar) ---------- */
