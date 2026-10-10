@@ -40,7 +40,14 @@ const errors = [];
 function track(page, tag) {
   page.on('pageerror', (e) => errors.push(`${tag}: ${e}`));
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(`${tag} console: ${m.text()}`);
+    if (m.type() !== 'error') return;
+    const text = m.text();
+    // Third-party assets (poster CDNs) can fail on a flaky network or VPN —
+    // that's environmental, not our code. A failed load from OUR origin, and
+    // any JS error, still fails the run.
+    const where = m.location()?.url || '';
+    if (/Failed to load resource/.test(text) && !where.startsWith(BASE)) return;
+    errors.push(`${tag} console: ${text} (${where})`);
   });
 }
 

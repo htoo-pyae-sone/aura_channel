@@ -1126,6 +1126,50 @@ a:hover {
   border-radius: 4px;
 }
 
+/* The VPN hint leads with a violet "Note:" (label token, like STORY). VPN is
+   plain gold text — the one key term to spot, in the same gold as the numbers,
+   with no chip so the line stays a line. The "No episodes yet" sibling state
+   stays plain, as two meanings, two looks. */
+.notice-label {
+  font-weight: 700;
+  color: var(--label);
+}
+
+.notice-term {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.notice-key {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* Empty state: the bar keeps its shape but gains the label voice of the
+   heading it stands in for (--font-display, uppercase, --label), so a page
+   with no episodes still says what's missing. Body lifts to cream so it
+   reads as a promise rather than leftover text. */
+.notice-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--label);
+  margin-bottom: 0.4rem;
+}
+
+.notice-eyebrow svg {
+  flex: none;
+  color: var(--label);
+}
+
+.notice-body {
+  color: var(--text);
+}
+
 /* ========== Accordion Episodes & Downloads Section ========== */
 .episodes-section {
   margin-top: 3.5rem;
@@ -1719,6 +1763,12 @@ a:hover {
     color: var(--accent);
   }
 
+  /* Text violet, not accent: #8b5cf6 is too dark for 13.6px copy on this
+     background — --label (#a78bfa) keeps it readable while matching. */
+  .dl-row:hover .dl-source {
+    color: var(--label);
+  }
+
   .dl-row:hover .dl-arrow {
     color: var(--accent);
     transform: translateX(3px);
@@ -1750,10 +1800,15 @@ a:hover {
 .dl-source {
   font-family: var(--font-mono);
   font-size: 0.85rem;
-  color: var(--label);
-  font-weight: 600;
+  /* The row's own "name": cream like the EP title at rest, NO box (the
+     MP4/1080p badges wear those). Weight sits with the badges (500) so size
+     + mono — not boldness — carry the hierarchy. Violet only appears on
+     hover, joining the icon and arrow. */
+  color: var(--text);
+  font-weight: 500;
   letter-spacing: 0.5px;
   text-align: left;
+  transition: color 0.15s ease;
 }
 
 .dl-icon-front {
