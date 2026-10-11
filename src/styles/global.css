@@ -88,7 +88,12 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(15, 15, 15, 0.8);
+  /* Alpha, not blur radius, is what makes this read as frosted glass: the
+     background paints OVER the blurred backdrop, so at 0.8 four fifths of
+     the blur was being thrown away unseen (doubling it changed the render
+     by 0.1%). 0.6 lets the poster bleed through as a soft band while the
+     logo keeps 6.9:1 against the brightest frame that scrolls past. */
+  background: rgba(15, 15, 15, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -643,6 +648,230 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* Announcement ticker. It sits under the header where the chip row would, and
+   yields to the filter UI the same way — syncAnnounce() hides it whenever the
+   panel is open or anything is filtered, so the results keep the top of the
+   page once you're narrowing them.
+
+   Deliberately NOT the detail page's .notice treatment (left border + text
+   label). The violet here is a WASH, not a colour block — a few percent over
+   the page so the strip reads as "news" rather than as another filter
+   surface. What keeps it calm is the TEXT: see --announce-text below, which
+   is where the earlier glare problem actually lived. */
+.announce {
+  /* The text colour is chosen against THIS strip's own composited
+     background, not the page's. Plain --text (#edeae2) measures ~13.6:1 here,
+     and on a dark screen that reads as glare rather than as readable text —
+     the line is meant to be read, not to light up. This is ~38% dimmer at
+     ~8.8:1, still well clear of AA's 4.5:1. */
+  --announce-text: #c2bdb0;
+
+  position: relative;
+  /* Clips the progress line into the strip's rounded corners, and clips the
+     text while the bar collapses on dismiss. */
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.9rem clamp(1.25rem, 4vw, 3rem);
+  padding: 0.5rem 0.9rem;
+  /* 0.14 wash / 0.30 edge: strong enough to read as violet rather than as a
+     dark neutral, but well short of the point where a strip becomes a
+     warning banner. The border tracks the fill at roughly double so the
+     shape holds against the page. */
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb), 0.14);
+  /* Only opacity: dismissal fades the strip and then hides it. Animating the
+     height would overshoot — the grid reclaims its 1.5rem top padding the
+     moment the bar goes [hidden], so a collapsing bar would fall past the
+     resting position and bounce back up. */
+  transition: opacity 0.2s ease;
+}
+
+/* `display: flex` above outranks the UA's [hidden] rule — without this the
+   bar stays in flow when "hidden", same trap .active-filters fell into. */
+.announce[hidden] {
+  display: none;
+}
+
+.announce-ico {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  /* Violet against the gold wash — the two accents split the job: gold warms
+     the surface, the icon carries the recognisable "announcement" signal. */
+  color: var(--label);
+}
+
+/* One line, always — desktop and mobile alike. The viewport clips, and fades
+   at both ends so text never hard-cuts against the strip. Same edge-fade
+   language as the chip strip and the season strip. */
+.announce-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+}
+
+.announce-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+}
+
+/* ONE pass, then it parks (forwards). syncAnnounceScroll() sizes the track to
+   overrun the strip at any width, and --dur comes from the text's own width,
+   so the SPEED is constant however long the message — every visitor watches
+   the whole line drift past exactly once, at a readable pace.
+
+   One copy later the track lands on an identical copy, so what comes to rest
+   in view is the message from its beginning rather than an empty tail. */
+.announce.is-scrolling .announce-track {
+  animation: announce-scroll var(--dur, 30s) linear 1 forwards;
+}
+
+/* One copy = text + the dot that follows it. Every copy is the same width,
+   so the track slides by a whole number of copies and lands back where it
+   started — that's what makes the loop seamless at any copy count. */
+.announce-item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-right: 1.5rem;
+  font-size: 0.82rem;
+  color: var(--announce-text);
+}
+
+/* The separator dot marks the beat between repeats, so what would otherwise
+   look like text leaking past a seam reads as a deliberate ticker rhythm.
+   Warm at low opacity — it divides, it doesn't decorate. */
+.announce-item::after {
+  content: '';
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--announce-text);
+  opacity: 0.4;
+}
+
+/* --n is the copy count JS settled on: slide left by exactly 1/n of the
+   track, i.e. exactly one copy. */
+@keyframes announce-scroll {
+  to {
+    transform: translateX(calc(-100% / var(--n, 2)));
+  }
+}
+
+/* Pause under the cursor so a reader can stop it where they're looking — the
+   progress line has to stop with it, or it would race ahead of frozen text
+   and lie about how much has been delivered. */
+@media (hover: hover) {
+  .announce:hover .announce-track,
+  .announce:hover .announce-progress {
+    animation-play-state: paused;
+  }
+}
+
+/* One pass across the strip, then it sits full — same duration and easing as
+   the drift, so the two stay in phase and the bar reads as "how much of the
+   message has gone by". It ends; it does not loop. A progress bar that runs
+   forever is a loading state, and this is a notice being delivered. */
+.announce-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.announce.is-scrolling .announce-progress {
+  animation: announce-progress var(--dur, 30s) linear 1 forwards;
+}
+
+@keyframes announce-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* The strip gains `is-done` when the pass completes (animationend, wired in
+   the script) — that's what promotes the close button. */
+.announce-x {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 0.15rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--announce-text);
+  cursor: pointer;
+  /* Clickable from the first frame — a ~20s pass is far too long to make
+     anyone wait before they can close a notice. Just quiet until then. */
+  opacity: 0.45;
+  transition: opacity 0.3s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.announce-x svg {
+  width: 12px;
+  height: 12px;
+}
+
+.announce.is-done .announce-x {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .announce-x:hover {
+    background: rgba(var(--accent-rgb), 0.25);
+    color: var(--text);
+    opacity: 1;
+  }
+}
+
+.announce-x:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* Dismissing fades the strip out before it's removed, so the posters closing
+   up reads as a consequence rather than a glitch. */
+.announce.is-dismissing {
+  opacity: 0;
+}
+
+/* Reduced motion: no drift at all. The line stays one row and clips at the
+   fade, which is legible for anything short enough to matter. With no pass
+   there is no animationend to promote the X, so it starts at full opacity —
+   and with no drift the message is readable from the first frame anyway. */
+@media (prefers-reduced-motion: reduce) {
+  .announce.is-scrolling .announce-track,
+  .announce.is-scrolling .announce-progress {
+    animation: none;
+  }
+
+  .announce-progress {
+    display: none;
+  }
+
+  .announce-x {
+    opacity: 1;
+  }
+}
+
 /* Standing filter row above the grid: names only the constraints that are
    actually active, so a deep link explains itself without opening the whole
    filter panel. Hides itself entirely when nothing is set. */
@@ -693,7 +922,8 @@ a:hover {
    panel needs `~`, since the row's markup lies between them even while it's
    hidden. */
 .active-filters:not([hidden]) + .catalog-grid,
-.filter-panel:not([hidden]) ~ .catalog-grid {
+.filter-panel:not([hidden]) ~ .catalog-grid,
+.announce:not([hidden]) ~ .catalog-grid {
   padding-top: 0;
 }
 
@@ -805,25 +1035,54 @@ a:hover {
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* The card leans toward the viewer on hover or keyboard focus — it rises a
+   little, scales a little, and throws a deeper shadow as it comes. Focus
+   gets the identical treatment so tabbing reads the same as hovering.
+
+   This used to be two rules that cancelled out: the poster-wrap carried
+   translateY(-2px) at rest and the exact same value on hover, so hovering
+   did literally nothing — and the resting offset clipped 2px off the top
+   of the image. The lift now lives on the whole card. */
 .card:focus-visible {
-  transform: translateY(-5px);
+  transform: translateY(-6px) scale(1.02);
   border-color: var(--accent);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* Hover is gated: on touch, :hover sticks after a tap and the card would
+   stay lifted. Focus isn't — the keyboard doesn't need a pointer. */
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-6px) scale(1.02);
+    border-color: var(--accent);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Reduced motion keeps the border and shadow — the hover is still legible —
+   and drops only the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:focus-visible {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (hover: hover) {
+  .card:hover {
+    transform: none;
+  }
 }
 
 .card .card-poster-wrap {
-  transform: translateY(-2px);
-  transition: transform 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .card:focus-visible .card-poster-wrap {
-  transform: translateY(0);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.card:hover .card-poster-wrap {
-  transform: translateY(-2px);
-  transition: transform 0.2s ease;
 }
 
 .card:focus-visible {
@@ -2070,11 +2329,7 @@ a:hover {
     transform: translateX(3px);
   }
 
-  .card:hover {
-    transform: translateY(-5px);
-    border-color: var(--accent);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  }
+  /* (.card:hover lives up with the card styles, hover-gated there.) */
 }
 
 .dl-info {

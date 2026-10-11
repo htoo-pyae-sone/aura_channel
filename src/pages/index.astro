@@ -1,6 +1,17 @@
 ---
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import { ANNOUNCEMENT } from '../config';
+
+// The announcement also expires in the browser (see syncAnnounce), so it
+// disappears on schedule even if nothing is rebuilt. Checking it here too
+// means a build taken after the date leaves it out of the HTML entirely.
+const announce =
+  ANNOUNCEMENT && ANNOUNCEMENT.until
+    ? new Date(`${ANNOUNCEMENT.until}T23:59:59`) >= new Date()
+      ? ANNOUNCEMENT
+      : null
+    : ANNOUNCEMENT;
 
 // zz-sample-* entries are local layout fixtures — built only in dev.
 const isSample = (id: string) => id.startsWith('zz-sample-');
@@ -40,6 +51,101 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
 
 <Base title="aniXsubs">
   <h1 class="sr-only">aniXsubs – Anime Catalog</h1>
+
+  {announce && (
+    <div class="announce" id="announce" data-until={announce.until} data-text={announce.text}>
+      <svg class="announce-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m3 11 18-5v12L3 14v-3z" />
+        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+      </svg>
+      <!-- syncAnnounceScroll() fills this with however many copies it takes to
+           overrun the strip at any width, then slides the track left by
+           exactly one copy — so the loop has no seam and no gap. Copies after
+           the first are hidden from screen readers. The track runs ONE pass
+           and parks (forwards), so the message is delivered once and then
+           just sits there readable. -->
+      <div class="announce-viewport">
+        <div class="announce-track">
+          <span class="announce-item">{announce.text}</span>
+        </div>
+      </div>
+      <!-- Clickable from the first frame at low opacity — nobody should be
+           trapped waiting out a ~20s pass to close a notice. Brightens once
+           the pass completes. Dismissal is remembered per MESSAGE (see the
+           inline script below), so a new announcement shows again for
+           everyone who dismissed the old one. -->
+      <button class="announce-x" id="announce-x" type="button" aria-label="Dismiss announcement">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+      <span class="announce-progress" aria-hidden="true"></span>
+    </div>
+  )}
+
+  {/* A visitor arriving from a genre or year tag on a detail page lands with
+      filters already active, and the main script hides the bar for those — but
+      that script runs after first paint, so the welcome message appeared for a
+      beat and then vanished. This runs during parse, before anything is
+      painted, so the bar is never shown for a filtered landing at all.
+
+      It can't live in the frontmatter: this is a static build, so the HTML is
+      written once with no query string and Astro.url.searchParams is empty at
+      build time. The URL only exists in the browser.
+
+      The rules mirror syncAnnounce() exactly — dismissed, expired, or any
+      real constraint — so the two can't disagree and cause a second flash when
+      the main script takes over. `page` is not a constraint (see
+      activeConstraints), so ?page=2 still shows the bar.
+
+      DISMISSAL IS KEYED TO THE MESSAGE, not to a yes/no flag. The stored
+      value is a hash of the text itself, so a visitor who closes the welcome
+      never sees it again — but the moment new copy is written in config.ts
+      the hash no longer matches and the announcement shows for everyone
+      again. No expiry date to remember, and no way to accidentally mute
+      future announcements. */}
+  <script is:inline>
+    (function () {
+      var bar = document.getElementById('announce');
+      if (!bar) return;
+
+      // djb2: tiny, dependency-free, and stable across builds — enough to
+      // identify a message, not a security primitive.
+      function announceHash(s) {
+        var h = 5381;
+        for (var i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+        return (h >>> 0).toString(36);
+      }
+      window.announceHash = announceHash;
+
+      var dismissed = false;
+      try {
+        dismissed =
+          localStorage.getItem('aura-announce-dismissed') === announceHash(bar.dataset.text || '');
+      } catch (e) {
+        /* storage blocked (private mode / cookies off) — just show it */
+      }
+      // Flag it on the element as well as hiding it: syncAnnounce() rewrites
+      // `hidden` on every load and filter change, so it has to be able to see
+      // the dismissal or it would immediately put the bar back.
+      if (dismissed) bar.dataset.dismissed = '1';
+
+      var until = bar.dataset.until;
+      var expired = until ? new Date(until + 'T23:59:59') < new Date() : false;
+      var params = new URLSearchParams(location.search);
+      var filtered =
+        (params.get('q') || '').trim() !== '' ||
+        ['type', 'status', 'genre', 'year'].some(function (key) {
+          var v = params.get(key);
+          return v !== null && v !== '' && v !== 'All';
+        });
+
+      if (dismissed || expired || filtered) bar.hidden = true;
+    })();
+  </script>
 
   <div class="filter-panel" id="filter-panel" hidden>
     <div class="select-row">
@@ -133,6 +239,8 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
   <script type="application/json" id="catalog-data" set:html={catalogJSON} />
 
   <script>
+    import { epLabel } from '../lib/episodes';
+
     const entries = JSON.parse(document.getElementById('catalog-data').textContent);
     const grid = document.getElementById('catalog-grid');
     const header = document.querySelector('.site-header');
@@ -140,6 +248,7 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
     const activeFilters = document.getElementById('active-filters');
     const filterToggle = document.getElementById('filter-toggle');
     const filterPanel = document.getElementById('filter-panel');
+    const announceBar = document.getElementById('announce');
     const pager = document.getElementById('cat-pager');
     const count = document.getElementById('cat-count');
     const firstBtn = document.getElementById('cat-first');
@@ -252,8 +361,116 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
     //
     // Yields to the panel while it's open — the pills there already highlight
     // every active filter, so showing both just repeats the same list.
+    // The announcement sits under the header but yields to the filter UI —
+    // it shows only when the panel is closed AND nothing is filtered, so the
+    // results keep the top of the page once you're narrowing them. `until`
+    // is checked here rather than only at build time, so the bar expires on
+    // its own date even if the site hasn't been redeployed since.
+    //
+    // `data-dismissed` is set by the inline script when this visitor already
+    // closed this exact message. It has to be re-read here: this function
+    // REWRITES `hidden` on load and on every filter change, so without it the
+    // bar would come straight back after being dismissed.
+    function syncAnnounce(constraints) {
+      if (!announceBar) return;
+      const until = announceBar.dataset.until;
+      const expired = until ? new Date(`${until}T23:59:59`) < new Date() : false;
+      const dismissed = announceBar.dataset.dismissed === '1';
+      announceBar.hidden = expired || dismissed || !filterPanel.hidden || constraints.length > 0;
+      syncAnnounceScroll();
+    }
+
+    // Fill the track with as many copies of the line as it takes to overrun
+    // the strip. Two copies isn't enough on a wide desktop — the strip is
+    // wider than two copies, so a gap would scroll through view. The count
+    // comes from the strip's real width, so it re-solves on resize too.
+    //
+    // Speed stays a constant DRIFT RATE (~38px/s), not a fixed duration: the
+    // duration is one copy's width over that rate, so a longer message takes
+    // proportionally longer instead of racing past.
+    function syncAnnounceScroll() {
+      if (!announceBar || announceBar.hidden) return;
+      const vp = announceBar.querySelector('.announce-viewport');
+      const track = announceBar.querySelector('.announce-track');
+      const text = announceBar.dataset.text;
+      if (!vp || !track || !text) return;
+
+      const unit = track.firstElementChild.getBoundingClientRect().width;
+      if (!unit) return;
+      // Two copies minimum (one to show, one to take its place), then enough
+      // more to cover the strip plus one spare to hide the loop's edge.
+      const copies = Math.max(2, Math.ceil(vp.clientWidth / unit) + 2);
+
+      if (track.children.length !== copies) {
+        // Built with textContent, not innerHTML — the string is developer-
+        // authored today, but it never needs to be trusted as markup.
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < copies; i += 1) {
+          const span = document.createElement('span');
+          span.className = 'announce-item';
+          span.textContent = text;
+          if (i > 0) span.setAttribute('aria-hidden', 'true');
+          frag.appendChild(span);
+        }
+        track.replaceChildren(frag);
+        announceBar.style.setProperty('--n', String(copies));
+      }
+
+      announceBar.style.setProperty('--dur', `${(unit / 38).toFixed(1)}s`);
+      announceBar.classList.add('is-scrolling');
+    }
+
+    // rAF-throttled: reading offsetWidth forces layout, and resize fires
+    // continuously while a window is being dragged.
+    let announceRaf = 0;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(announceRaf);
+      announceRaf = requestAnimationFrame(syncAnnounceScroll);
+    }, { passive: true });
+
+    // The progress line is what says "delivered": when its ONE pass ends the
+    // strip is marked done and the close button promotes from 45% to full
+    // opacity. It stays clickable the whole time — a ~20s pass is far too
+    // long to make anyone wait before they can dismiss a notice.
+    //
+    // Under reduced motion there is no pass, so no event ever fires and the
+    // button simply keeps its quiet opacity (CSS already pins it to full
+    // there, where the message is readable immediately).
+    announceBar?.querySelector('.announce-progress')
+      ?.addEventListener('animationend', () => announceBar.classList.add('is-done'));
+
+    // Dismissal is remembered per MESSAGE, not as a yes/no flag — the stored
+    // value is a hash of this text. So it stays gone for this visitor, but a
+    // new announcement written in config.ts won't match and will show again
+    // for everyone who dismissed the old one. No expiry date to manage, and
+    // no way to accidentally mute future announcements.
+    document.getElementById('announce-x')?.addEventListener('click', () => {
+      try {
+        localStorage.setItem(
+          'aura-announce-dismissed',
+          window.announceHash(announceBar.dataset.text || ''),
+        );
+      } catch (e) {
+        /* storage blocked (private mode) — it just reappears next load */
+      }
+      // Flag immediately, not just on next load: syncAnnounce() runs again on
+      // any filter change or panel toggle and would otherwise restore the bar
+      // mid-fade.
+      announceBar.dataset.dismissed = '1';
+      // Fade, then hide. Not a height animation: the grid reclaims its 1.5rem
+      // top padding the instant the bar is [hidden], so a collapsing bar
+      // would fall past the resting position and bounce back up. Fading in
+      // place and then hiding matches how the filter panel already yields.
+      announceBar.classList.add('is-dismissing');
+      window.setTimeout(() => {
+        announceBar.hidden = true;
+        announceBar.classList.remove('is-dismissing');
+      }, 200);
+    });
+
     function renderActiveFilters() {
       const constraints = activeConstraints();
+      syncAnnounce(constraints);
       const show = constraints.length > 0 && filterPanel.hidden;
       activeFilters.hidden = !show;
       if (!show) {
@@ -347,9 +564,7 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
     }
 
     function cardHTML(e) {
-      const epText = typeof e.totalEpisodes === 'number'
-        ? `${e.totalEpisodes} EP`
-        : (e.totalEpisodes || null);
+      const epText = epLabel(e.totalEpisodes);
       const bits = [e.type, epText].filter(Boolean).join(' · ');
       const ratingBadge = e.rating ? `<span class="rating-badge">★ ${e.rating.toFixed(1)}</span>` : '';
       const statusBadge = e.status ? `<span class="status-badge status-${e.status.toLowerCase()}">${e.status}</span>` : '';

@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { downloadUrl } from '../../config';
+import { epLabel } from '../../lib/episodes';
 
 export async function getStaticPaths() {
   // zz-sample-* entries are local layout fixtures — built only in dev.
@@ -36,13 +37,10 @@ const sortedSeasons = seasons?.length
   : [];
 const latestSeason = sortedSeasons.length ? sortedSeasons[sortedSeasons.length - 1] : null;
 const badgeTotal = latestSeason?.totalEpisodes ?? totalEpisodes;
-// "Unknown" is a real value but a useless badge — hide it instead.
-const epValue =
-  typeof badgeTotal === 'number'
-    ? `${badgeTotal} EP`
-    : badgeTotal && badgeTotal !== 'Unknown'
-      ? badgeTotal
-      : null;
+// The catalog card used to print "Unknown" bare while this badge hid it
+// entirely — the two disagreed. epLabel owns the rule for both now, so the
+// poster badge matches the card it was reached from.
+const epValue = epLabel(badgeTotal);
 
 const seasonList = sortedSeasons.length
   ? sortedSeasons.map((s) => ({
@@ -50,10 +48,7 @@ const seasonList = sortedSeasons.length
       tab: `S${s.season}`,
       name: s.title || `Season ${s.season}`,
       status: s.status || null,
-      count:
-        typeof s.totalEpisodes === 'number'
-          ? `${s.totalEpisodes} EP`
-          : s.totalEpisodes || null,
+      count: epLabel(s.totalEpisodes),
       episodes: s.episodes,
     }))
   : [

@@ -1,6 +1,7 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
+import { EP_UNKNOWN } from './lib/episodes';
 
 const httpsUrl = z
   .url()
@@ -31,7 +32,7 @@ const episodeSchema = z.object({
 });
 
 const totalEpCount = z
-  .union([z.number(), z.literal('Unknown'), z.string().regex(/^\d+\+$/)])
+  .union([z.number(), z.literal(EP_UNKNOWN), z.string().regex(/^\d+\+$/)])
   .optional();
 
 const seasonSchema = z.object({

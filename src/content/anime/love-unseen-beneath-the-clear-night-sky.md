@@ -7,7 +7,7 @@ type: "Series"
 year: 2026
 status: "Ongoing"
 rating: 7.89
-totalEpisodes: "Unknown"
+totalEpisodes: "???"
 episodes:
   - ep: 1
     title: "An Encounter"

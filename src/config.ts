@@ -7,3 +7,21 @@ export function downloadUrl(link: string): string {
   if (/^https?:\/\//i.test(link)) return link; // legacy full URL, use as-is
   return `https://t.me/${BOT_USERNAME}?start=${link}`;
 }
+
+/**
+ * Front-page announcement bar — sits directly under the header, above the
+ * filter panel, and hides itself whenever the panel is open or the filter
+ * chip row is showing (so the results keep the top of the page once you're
+ * filtering).
+ *
+ * To announce something: edit `text` and redeploy. To take it down: set the
+ * whole value to `null`. Catalog page only.
+ *
+ * `until` is an ISO date (YYYY-MM-DD). On or after it the bar removes itself
+ * — checked in the browser, not at build time, so it expires on schedule
+ * even if nothing is rebuilt. Leave it off for a permanent notice.
+ */
+export const ANNOUNCEMENT: { text: string; until?: string } | null = {
+  // Permanent welcome — no `until`, so it stays up until this is edited.
+  text: 'Welcome! Stream MMSub anime in the best quality and at full speed — everything runs through the Telegram bot.',
+};
