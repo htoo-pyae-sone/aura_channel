@@ -3,6 +3,11 @@
 :root {
   --bg: #12131f;
   --bg-raised: #1a1c2c;
+  /* rgb() triple for the same colour. rgba(var(--bg-raised), 0.3) is INVALID
+     CSS — you can't feed a hex through var() into rgba() — and the footer's
+     gradient silently rendered as nothing for as long as it was written that
+     way. */
+  --bg-raised-rgb: 26, 28, 44;
   --accent: #8b5cf6;
   --accent-rgb: 139, 92, 246;
   /* --accent (borders, hovers, focus rings) reads too loud as small caps TEXT,
@@ -58,12 +63,6 @@ a:hover {
 }
 
 /* Utility Classes */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 clamp(1.25rem, 4vw, 3rem);
-}
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -259,68 +258,119 @@ a:hover {
 /* ---------- Footer ---------- */
 .site-footer {
   border-top: 1px solid var(--line);
-  padding: 3.5rem clamp(1.25rem, 4vw, 3rem) 2rem;
-  margin-top: 5rem;
-  background: linear-gradient(180deg, transparent 0%, rgba(var(--bg-raised), 0.3) 100%);
+  padding: 2.5rem clamp(1.25rem, 4vw, 3rem) 2rem;
+  margin-top: 4rem;
+  /* Was rgba(var(--bg-raised), 0.3) — invalid CSS, since --bg-raised is a
+     hex, so the browser dropped the entire declaration and this gradient had
+     never once rendered. --bg-raised-rgb is the same colour as a triple. */
+  background: linear-gradient(180deg, transparent 0%, rgba(var(--bg-raised-rgb), 0.35) 100%);
 }
 
+/* No max-width and no centring. The header and the card grid both span the
+   full padded width, so a centred 1100px column here pushed the whole footer
+   inboard of them — by 42px at 1280, 122px at 1440, 266px at 1728. It now
+   starts on the same left edge as the logo above it. .footer-top is
+   space-between, so the links still park on the right exactly as the
+   header's search does. */
 .footer-content {
-  max-width: 800px;
-  margin: 0 auto;
-  text-align: center;
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
 }
 
-.footer-disclaimer {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
-  margin: 0;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  border: 1px dashed var(--line);
+/* Row 1: brand left, links right. Stacks below 640. */
+.footer-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
 }
 
-.footer-bottom {
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--line);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
+/* The mark reuses .brand outright, so this only sizes it down a little. */
+.footer-brand {
+  font-size: 1rem;
 }
 
-.copyright {
-  color: rgba(var(--label-rgb), 0.85);
-  font-weight: 600;
-}
-
-/* --- Footer Navigation Links --- */
 .footer-nav {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
-  justify-content: center;
-  margin-bottom: 1.5rem;
 }
 
 .footer-nav-link {
   font-family: var(--font-mono);
   font-weight: 600;
   color: var(--text-muted);
-  text-decoration: none;
   font-size: 0.85rem;
-  transition: color 0.2s ease, transform 0.2s ease;
+  letter-spacing: 0.04em;
+  transition: color 0.2s ease;
 }
 
-.footer-nav-link:hover {
-  color: var(--accent);
+/* A colour change alone is a weak affordance for the only clickable things
+   in the footer — the underline says "link" whether or not you can see hue. */
+@media (hover: hover) {
+  .footer-nav-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
+    text-decoration-color: var(--accent);
+  }
+}
+
+.footer-nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* A plain line. The words ARE the disclaimer — the card, the icon and the
+   "Disclaimer:" prefix were all costume around them. Body font rather than
+   mono: it's a sentence to read, not chrome to scan. */
+.footer-disclaimer {
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 66ch;
+}
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+/* Was rgba(var(--label-rgb), 0.85). --label is the STANDING LABEL token — it
+   reads as "section label" everywhere else on the site, and a copyright line
+   is not one. Muted grey also leaves the nav links as the only thing here
+   worth looking at. */
+.copyright {
+  color: var(--text-muted);
+}
+
+/* Replaces the inline style that used to sit on this span. */
+.footer-version {
+  font-size: 0.85em;
+  opacity: 0.6;
 }
 
 @media (max-width: 640px) {
+  .footer-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
   .footer-nav {
     gap: 1rem;
   }
@@ -2430,7 +2480,12 @@ a:hover {
   }
 }
 
-/* ---------- About Page Styles ---------- */
+/* ---------- Static page styles (About / Guide / Terms) ----------
+
+   Shared by all three text pages. These were declared here under an "About"
+   heading and then declared a second time, identically, under "Terms &
+   Policies" — CSS is global, so that second copy did nothing except invite
+   the two blocks to drift apart. Declared once. */
 .page-container {
   max-width: 900px;
   margin: 0 auto;
@@ -2531,90 +2586,29 @@ a:hover {
 
 
 /* ---------- Terms & Policies Page Styles ---------- */
-.page-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem clamp(1.25rem, 4vw, 3rem) 4rem;
-}
+/* .page-container / .page-header / .page-title / .page-subtitle are declared
+   once in the shared block above. Only Terms-specific styling begins here.
 
-.page-header {
-  text-align: center;
-  margin-bottom: 2.5rem;
-}
+   The English/Myanmar tab switcher that used to wrap this content is gone —
+   the three text pages are single-language now — so .terms-tabs,
+   .tab-buttons, .tab-button and .tab-content went with it. Note that
+   .tab-content used to add its own 2rem padding around these blocks; they
+   now sit directly in .page-container. */
+/* The sentence that makes this page an agreement rather than a statement.
+   It takes over the hairline divider below it.
 
-.page-title {
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 5vw, 3.5rem);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  margin: 0 0 0.5rem;
-  text-transform: uppercase;
-}
-
-.page-title .highlight {
-  color: var(--label);
-}
-
-.page-subtitle {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.terms-tabs {
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 2rem;
-}
-
-.tab-buttons {
-  display: flex;
-  border-bottom: 1px solid var(--line);
-}
-
-.tab-button {
-  flex: 1;
-  padding: 1rem 1.5rem;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.tab-button:hover {
+   Scoped under .content-block because that rule sets `color` and `font-size`
+   on every p inside a block, and (0,1,1) beats a bare (0,1,0) class — without
+   this the line rendered muted at 0.95rem like ordinary prose. */
+.content-block .terms-acceptance {
   color: var(--text);
-  background: rgba(var(--accent-rgb), 0.05);
-}
-
-.tab-button.active {
-  color: var(--label);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
   font-weight: 600;
-}
-
-.tab-button.active::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--accent);
-}
-
-.tab-content {
-  padding: 2rem;
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .terms-block h2 {
@@ -2657,21 +2651,10 @@ a:hover {
 }
 
 @media (max-width: 600px) {
-  .page-container {
-    padding: 1.5rem clamp(1rem, 4vw, 2rem) 3rem;
-  }
-
-  .page-title {
-    font-size: clamp(1.8rem, 6vw, 2.5rem);
-  }
-
-  .tab-button {
-    font-size: 0.9rem;
-    padding: 0.8rem 1rem;
-  }
-
-  .tab-content {
-    padding: 1.5rem;
+  /* .page-container and .page-title shrink in the shared block above. */
+  .content-block .terms-acceptance {
+    font-size: 1rem;
+    margin-bottom: 1rem;
   }
 
   .terms-block h2 {

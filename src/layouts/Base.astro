@@ -74,18 +74,34 @@ const { title, description = 'Discover Anime' } = Astro.props;
 
     <footer class="site-footer">
       <div class="footer-content">
-        <div class="footer-nav">
-          <a href="/about" class="footer-nav-link">About Us</a>
-          <a href="/guide" class="footer-nav-link">Guide</a>
-          <a href="/terms" class="footer-nav-link">Terms & Policies</a>
+        <!-- Row 1: brand mark beside the links. The mark reuses .brand and
+             .brand-text outright, so the footer logo is literally the
+             header's and the two can never drift apart. -->
+        <div class="footer-top">
+          <a href="/" class="brand footer-brand">
+            <span class="brand-text">ani<img class="brand-x-img" src="/favicon-32.png" alt="X" />subs</span>
+          </a>
+
+          <nav class="footer-nav" aria-label="Footer">
+            <a href="/about" class="footer-nav-link">About Us</a>
+            <a href="/guide" class="footer-nav-link">Guide</a>
+            <a href="/terms" class="footer-nav-link">Terms & Policies</a>
+          </nav>
         </div>
 
+        <!-- Plain line, no label and no box. "Disclaimer:" in front of it was
+             redundant — the sentence is self-evidently one — and the box it
+             sat in either shouted (dashed card) or vanished (bare line).
+             Keeping the words and dropping the costume. Body font rather than
+             mono: it's a sentence to read, not chrome to scan. -->
         <p class="footer-disclaimer">
-          <strong>Disclaimer:</strong> This site does not store any files on its server. All contents are provided by non-affiliated third parties.
+          aniXsubs does not store any files on its server. All contents are provided by non-affiliated third parties.
         </p>
 
         <div class="footer-bottom">
-          <span class="copyright">&copy; {new Date().getFullYear()} aniXsubs. All rights reserved. <span style="opacity: 0.5; font-size: 0.8em; margin-left: 0.5rem;">v1.0.0</span></span>
+          <span class="copyright">&copy; {new Date().getFullYear()} aniXsubs. All rights reserved.</span>
+          <!-- Was an inline style on a span inside .copyright. -->
+          <span class="footer-version">v1.0.0</span>
         </div>
       </div>
     </footer>
