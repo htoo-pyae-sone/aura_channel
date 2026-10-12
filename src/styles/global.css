@@ -94,17 +94,24 @@ a:hover {
   top: 0;
   z-index: 100;
   /* Alpha, not blur radius, is what makes this read as frosted glass: the
-     background paints OVER the blurred backdrop, so at 0.8 four fifths of
-     the blur was being thrown away unseen (doubling it changed the render
-     by 0.1%). 0.6 lets the poster bleed through as a soft band while the
-     logo keeps 6.9:1 against the brightest frame that scrolls past.
+     background paints OVER the blurred backdrop, so raising the radius alone
+     barely registers (12 -> 24 measured at 100% -> 96% of the stripe contrast
+     surviving, and it plateaus past ~32px).
 
-     Radius 12 -> 24 on request. This softens the EDGES of what bleeds
-     through (a poster becomes an even colour field rather than a smeared
-     picture). It does not make the header more opaque — that is what the
-     alpha above does, and it is the lever to reach for if the bar still
-     reads as too transparent. */
-  background: rgba(15, 15, 15, 0.6);
+     0.6 -> 0.85 because the bar read as too transparent. Measured on real
+     content (the Black Clover detail page, where a hero image sits directly
+     under the sticky header), the empty span between logo and search goes:
+
+       alpha   brightest pixel   stddev
+       0.60          38            3.5
+       0.75          34            2.6
+       0.85          31            2.0   <- here
+       0.92          29            1.7
+
+     Still translucent enough to read as glass rather than a solid slab, but
+     the backdrop is now effectively uniform, so nothing scrabbles behind the
+     logo. Push past ~0.9 and it stops looking frosted at all. */
+  background: rgba(15, 15, 15, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -2324,8 +2331,15 @@ a:hover {
   font-size: 0.8rem;
 }
 
+/* Numbers now show at every width (they used to be dropped here). What goes
+   instead is the first/last pair: measured at 390px the row has 350px to work
+   with, and « < 1 … 4 5 6 … 20 > » needs 398px. Dropping « and » saves 104px
+   and loses nothing, because pageNumbers() already pins the first and last
+   page as real buttons behind the ellipsis. See pageNumbers() in index.astro
+   for the width table. */
 @media (max-width: 640px) {
-  .cat-numbers {
+  #cat-first,
+  #cat-last {
     display: none;
   }
 }

@@ -344,7 +344,10 @@ async function runChecks(browser) {
         genre: document.getElementById('filter-genre').value,
         year: document.getElementById('filter-year').value,
         search: document.querySelector('.header-search-input')?.value || '',
-        count: document.getElementById('cat-count').textContent.trim(),
+        // The catalog no longer prints a "Showing 1-3 of 3" line (page numbers
+        // say where you are instead), so read the count defensively — it is
+        // only ever used to enrich the assertion message below.
+        count: document.getElementById('cat-count')?.textContent?.trim() || '(no count line)',
         cards: document.querySelectorAll('#catalog-grid > *').length,
       }));
       await p.close();
