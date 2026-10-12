@@ -8,6 +8,10 @@
      gradient silently rendered as nothing for as long as it was written that
      way. */
   --bg-raised-rgb: 26, 28, 44;
+  /* Same colour as --bg, as a triple — needed for the header, which must stay
+     translucent (rgba(18, 19, 31, 0.85)). Same trap as --bg-raised-rgb above:
+     rgba(var(--bg), 0.85) is invalid and silently renders nothing. */
+  --bg-rgb: 18, 19, 31;
   --accent: #8b5cf6;
   --accent-rgb: 139, 92, 246;
   /* --accent (borders, hovers, focus rings) reads too loud as small caps TEXT,
@@ -110,8 +114,15 @@ a:hover {
 
      Still translucent enough to read as glass rather than a solid slab, but
      the backdrop is now effectively uniform, so nothing scrabbles behind the
-     logo. Push past ~0.9 and it stops looking frosted at all. */
-  background: rgba(15, 15, 15, 0.85);
+     logo. Push past ~0.9 and it stops looking frosted at all.
+
+     Base colour is --bg, not a one-off #0f0f0f: the drawer below it is --bg
+     and the body behind it is --bg, so over the page the header blends a
+     colour with itself and renders as EXACTLY #12131f — no seam. The old
+     #0f0f0f was off-theme and left a hard step at the join (measured: blue
+     channel jumped 17 -> 31, a delta of 14, which no amount of alpha could
+     close — that was a hue mismatch, not an opacity one). */
+  background: rgba(var(--bg-rgb), 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -224,12 +235,15 @@ a:hover {
   left: 0;
   right: 0;
   z-index: 99;
-  /* Fully opaque, not translucent like .site-header's 0.6. The header only
+  /* Fully opaque, not translucent like .site-header's 0.85. The header only
      ever sits over the page's top edge, but the drawer overlays full-colour
      poster art — at 0.94 the card images read clearly behind the menu rows
      and at 0.985 they were still faintly visible. A menu that you have to
-     read past isn't a menu. */
-  background: #12131f;
+     read past isn't a menu.
+
+     var(--bg) rather than a literal #12131f so this can't drift from the
+     body colour, and matches the header's own base — see .site-header. */
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
@@ -2117,6 +2131,14 @@ a:hover {
   align-items: center;
   gap: 0.6rem;
   margin: 0;
+}
+
+/* Single-season entry: there's no tab strip, so row 1 is empty apart from the
+   jump box on the right. Move the pills up to share it rather than leaving
+   them alone on row 2 beneath a floating input — one line, pills left, jump
+   right, same shape the multi-season row has. */
+.season-row.is-solo .season-meta {
+  grid-row: 1;
 }
 
 .season-meta[hidden] {

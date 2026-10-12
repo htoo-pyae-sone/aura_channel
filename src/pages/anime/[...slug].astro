@@ -56,8 +56,14 @@ const seasonList = sortedSeasons.length
         key: 'all',
         tab: '',
         name: null,
-        status: null,
-        count: null,
+        // Single-season entries used to hardcode these to null, which made the
+        // status/count pills vanish — so a title with seasons showed
+        // "Completed / 170 EP" beside the jump box and one without showed only
+        // the jump box. The data was on the page the whole time: the poster
+        // badge above prints epLabel(badgeTotal). Same two values, so a
+        // no-season entry now reads identically to a season's row.
+        status: status || null,
+        count: epLabel(badgeTotal),
         episodes: episodes ?? [],
       },
     ];
@@ -171,7 +177,9 @@ const EP_PAGE_SIZE = 10;
             <h3 class="episodes-heading">Episodes & Downloads</h3>
           </div>
 
-          <div class="season-row">
+          {/* is-solo: no tab strip, so row 1 is free — the pills take it
+              instead of being stranded on row 2 under a floating jump box. */}
+          <div class={`season-row${seasonList.length > 1 ? '' : ' is-solo'}`}>
             {seasonList.length > 1 && (
               <div class="season-tabs" role="tablist" aria-label="Seasons">
                 {seasonList.map((s, i) => (
