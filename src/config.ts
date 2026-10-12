@@ -23,5 +23,19 @@ export function downloadUrl(link: string): string {
  */
 export const ANNOUNCEMENT: { text: string; until?: string } | null = {
   // Permanent welcome — no `until`, so it stays up until this is edited.
-  text: 'Welcome! Stream MMSub anime in the best quality and at full speed — everything runs through the Telegram bot.',
+  text: 'Welcome! Stream MMSub anime in the best quality at full speed',
+};
+
+/**
+ * Social links, shown as icons on the right of the footer's top row. Either
+ * may be left off — the icon renders only when its URL is filled in, so an
+ * empty object means no icons rather than a dead link. They open in a new
+ * tab, like any outbound link should.
+ */
+export const SOCIAL: { telegram?: string; facebook?: string } = {
+  // ⚠️ TEMPORARY placeholders — replace both with the real profile URLs.
+  // The icons show as soon as a URL is filled in; delete a line to drop that
+  // icon entirely (an empty object means no icons, never a dead link).
+  telegram: 'https://t.me/yourchannel',
+  facebook: 'https://facebook.com/yourpage',
 };

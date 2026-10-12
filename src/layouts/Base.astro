@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Analytics from '@vercel/analytics/astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
+import { SOCIAL } from '../config';
 
 interface Props {
   title: string;
@@ -9,10 +10,40 @@ interface Props {
 }
 
 const { title, description = 'Discover Anime' } = Astro.props;
+
+// Trailing slash stripped so /about/ and /about both match.
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+// Movies and Series are not pages — they are ?type= filters on the catalog.
+// They look identical to the rest of the menu, so the inline script below is
+// what marks them current; the server cannot know a query string at build time.
+const navItems = [
+  { href: '/', label: 'Home' },
+  { href: '/?type=Movie', label: 'Movies', type: 'Movie' },
+  { href: '/?type=Series', label: 'Series', type: 'Series' },
+  { href: '/about', label: 'About Us' },
+  { href: '/guide', label: 'Guide' },
+  { href: '/terms', label: 'Terms & Policies' },
+];
+
+const socials = [
+  SOCIAL.telegram && {
+    href: SOCIAL.telegram,
+    label: 'Telegram',
+    // Telegram's paper-plane mark.
+    path: 'M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z',
+  },
+  SOCIAL.facebook && {
+    href: SOCIAL.facebook,
+    label: 'Facebook',
+    // Facebook's "f" in a circle.
+    path: 'M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.99 3.66 9.13 8.44 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.23.2 2.23.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99C18.34 21.13 22 16.99 22 12z',
+  },
+].filter(Boolean) as { href: string; label: string; path: string }[];
 ---
 
 <!doctype html>
-<html lang="my">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -33,10 +64,28 @@ const { title, description = 'Discover Anime' } = Astro.props;
   </head>
   <body>
     <header class="site-header">
+      <!-- Hamburger first, ahead of the logo, and visible at EVERY width —
+           it is the only menu now, on desktop as well as mobile. Placing it
+           before .brand shifts the logo ~46px right of the shared left edge,
+           so from here on the hamburger, not the wordmark, sits on it. -->
+      <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-drawer">
+        <svg class="nav-icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="4" y1="7" x2="20" y2="7" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <line x1="4" y1="17" x2="20" y2="17" />
+        </svg>
+        <svg class="nav-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="18" y1="6" x2="6" y2="18" />
+        </svg>
+      </button>
+
       <a class="brand" href="/">
         <span class="brand-text">ani<img class="brand-x-img" src="/favicon-32.png" alt="X" />subs</span>
       </a>
 
+      <!-- .header-search's margin-left:auto parks the search and filter at the
+           far right regardless of what sits to the left of it. -->
       <form class="header-search" action="/" method="get" role="search">
         <svg class="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="1.6" />
@@ -68,25 +117,58 @@ const { title, description = 'Discover Anime' } = Astro.props;
       </button>
     </header>
 
+    <!-- Deliberately OUTSIDE .site-header. That header is sticky with a
+         backdrop-filter, and a filtered element becomes the containing block
+         for absolutely positioned descendants — nesting the drawer would pin
+         it to the header instead of the viewport. -->
+    <div class="nav-drawer" id="nav-drawer" hidden>
+      <nav class="nav-drawer-list" aria-label="Primary">
+        {navItems.map((item) => (
+          <a
+            href={item.href}
+            class="nav-drawer-link"
+            data-nav-type={item.type}
+            aria-current={item.type ? undefined : path === item.href ? 'page' : undefined}
+          >{item.label}</a>
+        ))}
+      </nav>
+    </div>
+
     <main>
       <slot />
     </main>
 
     <footer class="site-footer">
       <div class="footer-content">
-        <!-- Row 1: brand mark beside the links. The mark reuses .brand and
-             .brand-text outright, so the footer logo is literally the
-             header's and the two can never drift apart. -->
+        <!-- Row 1: brand mark beside the social icons. The mark reuses .brand
+             and .brand-text outright, so the footer logo is literally the
+             header's and the two can never drift apart.
+
+             The About / Guide / Terms links that used to live here moved into
+             the header nav, which is a hamburger below 1280 — so the drawer
+             is what keeps those pages reachable on a phone. -->
         <div class="footer-top">
           <a href="/" class="brand footer-brand">
             <span class="brand-text">ani<img class="brand-x-img" src="/favicon-32.png" alt="X" />subs</span>
           </a>
 
-          <nav class="footer-nav" aria-label="Footer">
-            <a href="/about" class="footer-nav-link">About Us</a>
-            <a href="/guide" class="footer-nav-link">Guide</a>
-            <a href="/terms" class="footer-nav-link">Terms & Policies</a>
-          </nav>
+          {socials.length > 0 && (
+            <nav class="footer-social" aria-label="Social">
+              {socials.map((s) => (
+                <a
+                  href={s.href}
+                  class="footer-social-link"
+                  aria-label={s.label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d={s.path} />
+                  </svg>
+                </a>
+              ))}
+            </nav>
+          )}
         </div>
 
         <!-- Plain line, no label and no box. "Disclaimer:" in front of it was
@@ -159,6 +241,86 @@ const { title, description = 'Discover Anime' } = Astro.props;
           }
         });
       }
+
+      // ---- Mobile nav drawer -------------------------------------------------
+      const navToggle = document.querySelector<HTMLButtonElement>('.nav-toggle');
+      const navDrawer = document.getElementById('nav-drawer');
+      const siteHeader = document.querySelector('.site-header');
+
+      // The drawer is fixed and lives OUTSIDE the header (see markup note), so
+      // `top` is measured, not assumed — the header's height changes when the
+      // search box expands on small screens. Driven by a ResizeObserver rather
+      // than a scroll handler: the header is sticky, so its box doesn't move
+      // once stuck, and observing avoids forcing layout on every scroll frame.
+      const syncDrawerTop = () => {
+        if (navDrawer && siteHeader) navDrawer.style.top = `${siteHeader.getBoundingClientRect().bottom}px`;
+      };
+
+      if (siteHeader) new ResizeObserver(syncDrawerTop).observe(siteHeader);
+      syncDrawerTop();
+
+      const setDrawer = (open: boolean) => {
+        if (!navDrawer || !navToggle) return;
+        if (open) syncDrawerTop();
+        navDrawer.hidden = !open;
+        navToggle.setAttribute('aria-expanded', String(open));
+      };
+
+      navToggle?.addEventListener('click', () => {
+        setDrawer(navDrawer?.hidden ?? true);
+      });
+
+      // Escape closes and hands focus back to the button that opened it.
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || navDrawer?.hidden !== false) return;
+        setDrawer(false);
+        navToggle?.focus();
+      });
+
+      // Clicking anywhere that isn't the drawer or the toggle closes it.
+      document.addEventListener('click', (e) => {
+        if (navDrawer?.hidden !== false) return;
+        const t = e.target as Node;
+        if (navDrawer.contains(t) || navToggle?.contains(t)) return;
+        setDrawer(false);
+      });
+
+      // ---- Nav active state for Movies / Series ------------------------------
+      // These are ?type= links, not paths, so the server can't mark them current
+      // at build time — this runs client-side instead.
+      const syncTypeNav = () => {
+        const type = new URLSearchParams(window.location.search).get('type');
+        const isTypeNav = type === 'Movie' || type === 'Series';
+
+        document.querySelectorAll<HTMLElement>('[data-nav-type]').forEach((el) => {
+          if (isTypeNav && el.dataset.navType === type) {
+            el.setAttribute('aria-current', 'true');
+          } else {
+            el.removeAttribute('aria-current');
+          }
+        });
+
+        // Home is "/" too, so it would otherwise stay lit while a filter is on.
+        if (isTypeNav) {
+          document
+            .querySelectorAll<HTMLAnchorElement>('.site-nav a[href="/"], .nav-drawer a[href="/"]')
+            .forEach((el) => el.removeAttribute('aria-current'));
+        }
+      };
+
+      syncTypeNav();
+      // The catalog rewrites the URL with history.replaceState, which — unlike
+      // pushState — emits no popstate. Rather than reach into that script or
+      // poll, patch the History methods once to announce the change. Self-
+      // contained here, and correct no matter which page mutates the URL.
+      for (const method of ['pushState', 'replaceState'] as const) {
+        const original = history[method].bind(history);
+        history[method] = (...args: Parameters<History['replaceState']>) => {
+          original(...args);
+          syncTypeNav();
+        };
+      }
+      window.addEventListener('popstate', syncTypeNav);
     </script>
   </body>
 </html>

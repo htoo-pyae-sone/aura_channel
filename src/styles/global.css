@@ -78,8 +78,14 @@ a:hover {
 /* ---------- Header ---------- */
 .site-header {
   display: flex;
+  /* Was `baseline`. Baseline matches TEXT baselines, and .nav-toggle contains
+     only an SVG — with no real baseline to find, CSS synthesises one from the
+     element's bottom edge, which pulled the whole button ~3px above the row's
+     visual centre (measured centres: toggle 29.0, filter 30.5, brand 31.1,
+     search 32.5). Every item here is a box, not a line of text, so centring
+     the boxes is what actually lines them up. */
+  align-items: center;
   justify-content: space-between;
-  align-items: baseline;
   gap: 1rem;
   padding: 0.75rem clamp(1.25rem, 4vw, 3rem) 0.75rem;
   flex-wrap: wrap;
@@ -132,6 +138,161 @@ a:hover {
 .brand:hover .brand-text {
   transform: translateX(2px);
 }
+
+/* ---------- Header nav ---------- */
+
+/* The hamburger is the ONLY menu, at every width — the inline .site-nav that
+   used to appear from 1280px up is gone, so the header is now
+   [hamburger] [logo] ......... [search] [filter] on desktop as well as
+   mobile. Opening it shows the same six links in .nav-drawer. */
+
+/* Two icons, swapped by aria-expanded: the lines read as "menu" when closed
+   and the X as "dismiss" when open, so the control explains itself. */
+.nav-icon-close {
+  display: none;
+}
+
+.nav-toggle[aria-expanded='true'] .nav-icon-open {
+  display: none;
+}
+
+.nav-toggle[aria-expanded='true'] .nav-icon-close {
+  display: block;
+}
+
+/* Base rule must be inline-flex, not none: a `display:none` here would need a
+   second max-width rule to undo it, and without one the toggle simply never
+   appears on a phone. */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.nav-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (hover: hover) {
+  .nav-toggle:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+}
+
+.nav-toggle[aria-expanded='true'] {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.nav-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Fixed rather than sticky, and OUTSIDE .site-header in the markup: that
+   header has a backdrop-filter, which makes it the containing block for
+   absolutely/fixed positioned descendants. Nested, the drawer would have
+   pinned itself to the header instead of the viewport. The script sets `top`
+   from the header's real height, so this is only the fallback. */
+.nav-drawer {
+  position: fixed;
+  top: 57px;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  /* Fully opaque, not translucent like .site-header's 0.6. The header only
+     ever sits over the page's top edge, but the drawer overlays full-colour
+     poster art — at 0.94 the card images read clearly behind the menu rows
+     and at 0.985 they were still faintly visible. A menu that you have to
+     read past isn't a menu. */
+  background: #12131f;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* A full-bleed bar is right on a 390px phone, but at 1440px it stretched six
+   short links across the whole viewport with hairlines running to both edges
+   — a lot of empty panel for very little menu. Below 1024 keep it full width;
+   above that, drop it to a fixed panel hanging under the hamburger, which is
+   where the user's eye already is. */
+@media (min-width: 1024px) {
+  .nav-drawer {
+    right: auto;
+    width: 340px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.nav-drawer[hidden] {
+  display: none;
+}
+
+.nav-drawer-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.4rem clamp(1.25rem, 4vw, 3rem) 0.6rem;
+}
+
+.nav-drawer-link {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: color 0.2s ease;
+}
+
+.nav-drawer-list .nav-drawer-link:last-child {
+  border-bottom: none;
+}
+
+.nav-drawer-link[aria-current] {
+  color: var(--text);
+}
+
+/* The dot is what says "you are here" — the drawer has no room for an
+   underline to read as a state. */
+.nav-drawer-link[aria-current]::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 0.6rem;
+  vertical-align: middle;
+}
+
+@media (hover: hover) {
+  .nav-drawer-link:hover {
+    color: var(--text);
+  }
+}
+
+.nav-drawer-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* No min-width:1280 block any more. It used to reveal .site-nav and hide the
+   hamburger and drawer above 1280 — with the hamburger now the only menu at
+   every width, applying it would have hidden the drawer precisely on desktop,
+   where it has to open. */
 
 /* ---------- Header search (always visible) ---------- */
 .header-search {
@@ -292,36 +453,41 @@ a:hover {
   font-size: 1rem;
 }
 
-.footer-nav {
+/* Social icons take the slot the footer's nav links used to hold — those moved
+   into the header. The markup renders this nav only when SOCIAL has at least
+   one URL, so an unconfigured site shows nothing rather than dead icons. */
+.footer-social {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.footer-nav-link {
-  font-family: var(--font-mono);
-  font-weight: 600;
+.footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   color: var(--text-muted);
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, background 0.2s ease;
 }
 
-/* A colour change alone is a weak affordance for the only clickable things
-   in the footer — the underline says "link" whether or not you can see hue. */
+.footer-social-link svg {
+  width: 18px;
+  height: 18px;
+}
+
 @media (hover: hover) {
-  .footer-nav-link:hover {
-    color: var(--accent);
-    text-decoration: underline;
-    text-underline-offset: 0.3em;
-    text-decoration-color: var(--accent);
+  .footer-social-link:hover {
+    color: var(--label);
+    background: rgba(var(--accent-rgb), 0.1);
   }
 }
 
-.footer-nav-link:focus-visible {
+.footer-social-link:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 2px;
+  outline-offset: 2px;
 }
 
 /* A plain line. The words ARE the disclaimer — the card, the icon and the
@@ -343,6 +509,13 @@ a:hover {
   justify-content: space-between;
   gap: 0.5rem 1rem;
   padding-top: 1.5rem;
+  /* Reserve the scroll-to-top button's footprint. It's position:fixed at
+     bottom:2rem right:2rem and 48px square, so its left edge is 80px in from
+     the viewport's right — which is precisely where space-between parked
+     "v1.0.0", putting the button straight on top of it (measured 48x48 button
+     over a 39px-wide label, fully covering it). You are always scrolled past
+     300px by the time the footer is visible, so the button is always here. */
+  padding-right: 5.5rem;
   border-top: 1px solid var(--line);
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -350,10 +523,17 @@ a:hover {
   letter-spacing: 0.04em;
 }
 
+@media (max-width: 768px) {
+  /* The button shrinks to 40px at 1.25rem offsets — 60px in from the edge. */
+  .footer-bottom {
+    padding-right: 4.5rem;
+  }
+}
+
 /* Was rgba(var(--label-rgb), 0.85). --label is the STANDING LABEL token — it
    reads as "section label" everywhere else on the site, and a copyright line
-   is not one. Muted grey also leaves the nav links as the only thing here
-   worth looking at. */
+   is not one. Muted grey also leaves the links and icons as the only things
+   here worth looking at. */
 .copyright {
   color: var(--text-muted);
 }
@@ -364,21 +544,8 @@ a:hover {
   opacity: 0.6;
 }
 
-@media (max-width: 640px) {
-  .footer-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .footer-nav {
-    gap: 1rem;
-  }
-
-  .footer-nav-link {
-    font-size: 0.75rem;
-  }
-}
+/* No 640px override needed any more: the footer's top row is the brand
+   (~95px) plus two 34px icons, which sit inline at 390px without crowding. */
 
 /* ---------- Filter panel ---------- */
 
@@ -772,15 +939,19 @@ a:hover {
   white-space: nowrap;
 }
 
-/* ONE pass, then it parks (forwards). syncAnnounceScroll() sizes the track to
-   overrun the strip at any width, and --dur comes from the text's own width,
-   so the SPEED is constant however long the message — every visitor watches
-   the whole line drift past exactly once, at a readable pace.
+/* Loops forever. The slide is exactly one copy (--n identical copies are laid
+   out), so every wrap lands on an identical copy and there is no seam to see.
 
-   One copy later the track lands on an identical copy, so what comes to rest
-   in view is the message from its beginning rather than an empty tail. */
+   syncAnnounceScroll() sizes the track to overrun the strip at any width, and
+   --dur comes from the text's own width, so the SPEED is constant however
+   long the message — a short notice and a long one drift past at the same
+   readable pace.
+
+   The progress bar deliberately does NOT loop: it is one pass, and it means
+   "the whole message has gone past". It fills, then stays full while the text
+   carries on. That pass completing is what gates the close button. */
 .announce.is-scrolling .announce-track {
-  animation: announce-scroll var(--dur, 30s) linear 1 forwards;
+  animation: announce-scroll var(--dur, 30s) linear infinite;
 }
 
 /* One copy = text + the dot that follows it. Every copy is the same width,
@@ -817,16 +988,6 @@ a:hover {
   }
 }
 
-/* Pause under the cursor so a reader can stop it where they're looking — the
-   progress line has to stop with it, or it would race ahead of frozen text
-   and lie about how much has been delivered. */
-@media (hover: hover) {
-  .announce:hover .announce-track,
-  .announce:hover .announce-progress {
-    animation-play-state: paused;
-  }
-}
-
 /* One pass across the strip, then it sits full — same duration and easing as
    the drift, so the two stay in phase and the bar reads as "how much of the
    message has gone by". It ends; it does not loop. A progress bar that runs
@@ -852,8 +1013,27 @@ a:hover {
   }
 }
 
-/* The strip gains `is-done` when the pass completes (animationend, wired in
-   the script) — that's what promotes the close button. */
+/* Pause under the cursor so a reader can stop it where they're looking — the
+   progress line has to stop with it, or it would race ahead of frozen text
+   and lie about how much has been delivered.
+
+   Deliberately placed AFTER both `animation` declarations. `.announce:hover
+   .announce-progress` and `.announce.is-scrolling .announce-progress` have
+   equal specificity (0,3,0), and the `animation` shorthand resets
+   `animation-play-state` back to `running` — so while this rule sat above
+   them, the later declaration won and the progress bar kept running while
+   the text was frozen. Falling out of phase like that also made `is-done`
+   fire off the progress bar while the track was still mid-slide, so the text
+   visibly drifted on after the bar had already read as full. */
+@media (hover: hover) {
+  .announce:hover .announce-track,
+  .announce:hover .announce-progress {
+    animation-play-state: paused;
+  }
+}
+
+/* The strip gains `is-done` when the one pass completes (animationend on the
+   progress bar, wired in the script) — that is what reveals the close button. */
 .announce-x {
   flex: none;
   display: inline-flex;
@@ -868,10 +1048,14 @@ a:hover {
   background: transparent;
   color: var(--announce-text);
   cursor: pointer;
-  /* Clickable from the first frame — a ~20s pass is far too long to make
-     anyone wait before they can close a notice. Just quiet until then. */
-  opacity: 0.45;
-  transition: opacity 0.3s ease, background 0.15s ease, color 0.15s ease;
+  /* Hidden until the pass completes — the notice is still being delivered,
+     and a dismiss control competing with a moving line is a target people
+     hit by accident. `visibility` rather than opacity alone, so it is also
+     out of the tab order and cannot be hovered while invisible. */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease, background 0.15s ease,
+    color 0.15s ease;
 }
 
 .announce-x svg {
@@ -881,6 +1065,7 @@ a:hover {
 
 .announce.is-done .announce-x {
   opacity: 1;
+  visibility: visible;
 }
 
 @media (hover: hover) {
@@ -917,8 +1102,12 @@ a:hover {
     display: none;
   }
 
+  /* The pass never runs here, so nothing would ever set is-done — the close
+     button has to be present from the start or reduced-motion visitors have
+     no way to dismiss the notice at all. */
   .announce-x {
     opacity: 1;
+    visibility: visible;
   }
 }
 
