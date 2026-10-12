@@ -25,6 +25,7 @@ const {
   type,
   year,
   status,
+  rating,
   totalEpisodes,
   episodes,
   seasons,
@@ -97,6 +98,13 @@ const EP_PAGE_SIZE = 10;
         fetchpriority="high"
         decoding="async"
       />
+      {/* Top-right — the one free corner: the episode badge takes bottom-left
+          and the season badge bottom-right. Same shape, colour and value as
+          the catalog card's rating badge, so the poster reads like the card
+          it was reached from. */}
+      {rating != null && (
+        <span class="rating-badge rating-badge-lg">★ {rating.toFixed(1)}</span>
+      )}
       {epValue && (
         <span class="episode-badge episode-badge-lg">
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
