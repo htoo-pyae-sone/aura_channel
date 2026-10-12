@@ -97,10 +97,16 @@ a:hover {
      background paints OVER the blurred backdrop, so at 0.8 four fifths of
      the blur was being thrown away unseen (doubling it changed the render
      by 0.1%). 0.6 lets the poster bleed through as a soft band while the
-     logo keeps 6.9:1 against the brightest frame that scrolls past. */
+     logo keeps 6.9:1 against the brightest frame that scrolls past.
+
+     Radius 12 -> 24 on request. This softens the EDGES of what bleeds
+     through (a poster becomes an even colour field rather than a smeared
+     picture). It does not make the header more opaque — that is what the
+     alpha above does, and it is the lever to reach for if the bar still
+     reads as too transparent. */
   background: rgba(15, 15, 15, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -430,22 +436,36 @@ a:hover {
 /* No max-width and no centring. The header and the card grid both span the
    full padded width, so a centred 1100px column here pushed the whole footer
    inboard of them — by 42px at 1280, 122px at 1440, 266px at 1728. It now
-   starts on the same left edge as the logo above it. .footer-top is
-   space-between, so the links still park on the right exactly as the
-   header's search does. */
+   starts on the same left edge as the logo above it. */
 .footer-content {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
 }
 
-/* Row 1: brand left, links right. Stacks below 640. */
+/* Row 1: the mark and the social icons sit together as ONE cluster on the
+   left, not pushed apart.
+
+   Was `space-between`, which parks the first child at the left edge and the
+   last at the right — so with the footer nav links gone, the two icons flew
+   to the far corner and left a ~1200px void between them and the wordmark.
+   Nothing sat in the middle to justify that, because space-between spreads
+   based on how many children there are, not on what they are.
+
+   The icons are a property of the brand ("this is aniXsubs, and here is where
+   to find it"), so they belong beside it. */
 .footer-top {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem 2rem;
+  justify-content: flex-start;
+  gap: 1rem;
+}
+
+/* Tighter than the row gap: this is the visual association being asserted. */
+.footer-brand + .footer-social {
+  gap: 0.35rem;
+  margin-left: -0.15rem;
 }
 
 /* The mark reuses .brand outright, so this only sizes it down a little. */
