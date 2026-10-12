@@ -33,9 +33,8 @@ export const ANNOUNCEMENT: { text: string; until?: string } | null = {
  * tab, like any outbound link should.
  */
 export const SOCIAL: { telegram?: string; facebook?: string } = {
-  // ⚠️ TEMPORARY placeholders — replace both with the real profile URLs.
-  // The icons show as soon as a URL is filled in; delete a line to drop that
-  // icon entirely (an empty object means no icons, never a dead link).
-  telegram: 'https://t.me/yourchannel',
-  facebook: 'https://facebook.com/yourpage',
+  // Real profile URLs. Delete a line to drop that icon entirely (an empty
+  // object means no icons, never a dead link).
+  telegram: 'https://t.me/anixsubs',
+  facebook: 'https://www.facebook.com/aniXsubs',
 };
