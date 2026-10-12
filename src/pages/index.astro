@@ -715,6 +715,23 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       window.scrollTo({ top: Math.max(0, y), behavior: scrollBehavior() });
     }
 
+    // The filter panel has the identical problem, in reverse. Its toggle is
+    // in the sticky header — always reachable at any scroll depth — while the
+    // panel itself sits in normal flow at the top of the catalog. So clicking
+    // the icon after scrolling down opened it several screens above the
+    // viewport and the user saw nothing happen. Take them to it, leaving the
+    // same room for the header as scrollToGridTop does.
+    // Narrowed explicitly: querySelector gives Element (no offsetHeight) and
+    // getElementById gives T | null, so both would otherwise add to the
+    // project's pre-existing type-error count.
+    function scrollToFilterTop() {
+      if (!(filterPanel instanceof HTMLElement) || !(header instanceof HTMLElement)) return;
+      const sticky =
+        getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
+      const y = filterPanel.getBoundingClientRect().top + window.scrollY - sticky - 12;
+      window.scrollTo({ top: Math.max(0, y), behavior: scrollBehavior() });
+    }
+
     function gotoPage(p, scrollTop = true) {
       state.page = p;
       renderPage();
@@ -740,6 +757,10 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       filterToggle.setAttribute('aria-expanded', String(open));
       // The chip row yields to the panel, so it has to come back on close.
       renderActiveFilters();
+      // Scroll only after that reflow: opening also hides the announcement
+      // bar, which sits ABOVE the panel, so measuring first would aim at a
+      // position the panel has already moved out of.
+      if (open) scrollToFilterTop();
     });
 
     // A deep link (/?year=2017, /?genre=Action, /?q=…) narrows the catalog, but
