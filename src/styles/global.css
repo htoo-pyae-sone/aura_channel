@@ -123,8 +123,17 @@ a:hover {
      channel jumped 17 -> 31, a delta of 14, which no amount of alpha could
      close — that was a hue mismatch, not an opacity one). */
   background: rgba(var(--bg-rgb), 0.85);
-  backdrop-filter: blur(24px);
+  /* Order matters here and at the three other backdrop-filter sites below.
+     `backdrop-filter` and `-webkit-backdrop-filter` are aliases, and the
+     build's minifier collapses each pair, keeping whichever is written last.
+     With the prefixed one last, the standard property was the one dropped —
+     and Chrome 156+ no longer honours the prefix at all (measured:
+     `-webkit-backdrop-filter` alone computes to `none`). So the blur worked
+     in dev, which serves the CSS unminified with both rules present, and
+     silently vanished in the production build. Prefixed first, standard last
+     is also the order autoprefixer emits: the standard declaration wins. */
   -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -1505,8 +1514,8 @@ a:hover {
   z-index: 0;
   padding: 0.7rem 0.9rem 0.85rem;
   background: linear-gradient(transparent, rgba(10, 10, 18, 0.88) 30%);
-  backdrop-filter: blur(1px);
   -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
 }
 
 .card .rating-badge,
@@ -2780,8 +2789,8 @@ a:hover {
 .glass-card {
   background: rgba(var(--accent-rgb), 0.03);
   border: 1px solid rgba(var(--accent-rgb), 0.15);
-  backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -2929,8 +2938,8 @@ a:hover {
   height: 48px;
 
   background: rgba(var(--accent-rgb), 0.05);
-  backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   border: none;
 
   color: var(--text);
