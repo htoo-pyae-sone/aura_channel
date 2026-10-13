@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { downloadUrl, SITE_URL } from '../../config';
 import { epLabel } from '../../lib/episodes';
+import { synopsisDescription } from '../../lib/description';
 
 export async function getStaticPaths() {
   // zz-sample-* entries are local layout fixtures — built only in dev.
@@ -85,6 +86,13 @@ const seasonBadge = (() => {
 
 const EP_PAGE_SIZE = 10;
 
+// Per-title meta description. Every detail page used to serve the identical
+// site-wide tagline, so all three looked the same in a search result and
+// none of them named the title. The synopsis is already in the entry body.
+// '' means nothing usable survived extraction — Base then falls back to the
+// site default rather than emitting an empty tag.
+const description = synopsisDescription(entry.body);
+
 // Structured data telling crawlers which work this page is about — the
 // thing that lets a search engine match the page to the title someone
 // typed. Frontmatter's `type` picks Movie vs TVSeries.
@@ -107,7 +115,11 @@ const seriesSchema = {
 };
 ---
 
-<Base title={`${title} — aniXsubs`} schema={seriesSchema}>
+<Base
+  title={`${title} — aniXsubs`}
+  description={description || undefined}
+  schema={seriesSchema}
+>
   <article class="detail">
   <div class="detail-side">
     <div class="detail-poster-wrap">
