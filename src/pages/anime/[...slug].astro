@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { downloadUrl, SITE_URL } from '../../config';
+import { downloadUrl, POSTER_FALLBACK, SITE_URL } from '../../config';
 import { epLabel } from '../../lib/episodes';
 import { synopsisDescription } from '../../lib/description';
 
@@ -123,6 +123,11 @@ const seriesSchema = {
   <article class="detail">
   <div class="detail-side">
     <div class="detail-poster-wrap">
+      {/* onerror: posters are i.pinimg.com links and those get taken down.
+          Before this the detail page rendered a broken 260×390 image box
+          while the catalog card fell back correctly — so the catalog still
+          looked healthy, which is exactly what hides the problem. Same
+          fallback, shared from config so the two cannot drift. */}
       <img
         class="detail-poster"
         src={poster}
@@ -130,6 +135,7 @@ const seriesSchema = {
         loading="eager"
         fetchpriority="high"
         decoding="async"
+        onerror={`this.onerror=null;this.src='${POSTER_FALLBACK}';`}
       />
       {/* Top-right — the one free corner: the episode badge takes bottom-left
           and the season badge bottom-right. Same shape, colour and value as

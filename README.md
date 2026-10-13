@@ -11,8 +11,9 @@ src/
   content.config.ts    ← collection + schema (title, poster, genres, type, year, status, rating, totalEpisodes, episodes)
   content/
     anime/
-      smoking-behind-the-supermarket-with-you.md
+      black-clover.md
       love-unseen-beneath-the-clear-night-sky.md
+      re-zero.md
   components/
     SwipeNav.astro     ← about/terms pager
   layouts/
