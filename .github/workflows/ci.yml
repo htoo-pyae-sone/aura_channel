@@ -28,12 +28,12 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Lockfile-pinned, so `astro check` sees the same TypeScript and the
       # same dependency versions locally and here — otherwise the error
       # count would drift between machines and the ratchet would be noise.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
