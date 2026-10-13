@@ -62,8 +62,12 @@ a {
   transition: color 0.2s ease;
 }
 
+/* Accent is chrome — borders, outlines, icons (3:1 is its threshold). Link
+   TEXT needs 4.5:1 and #8b5cf6 only manages 4.36:1, or 3.98:1 against the
+   card's raised background, so hoverable text uses --label (#a78bfa, 6.19:1)
+   instead. Same violet family, just the one that clears AA as text. */
 a:hover {
-  color: var(--accent);
+  color: var(--label);
 }
 
 /* Utility Classes */
@@ -1559,8 +1563,10 @@ a:hover {
   transition: color 0.2s ease;
 }
 
+/* --label, not --accent: 15.2px weight 500 is normal text, and the card's
+   raised background drops accent to 3.98:1. */
 .card:hover .card-title {
-  color: var(--accent);
+  color: var(--label);
 }
 
 /* ---------- Detail page ---------- */
@@ -1959,7 +1965,7 @@ a:hover {
 
 .back-link:hover,
 .back-link:focus-visible {
-  color: var(--accent);
+  color: var(--label);
 }
 
 @media (max-width: 768px) {
