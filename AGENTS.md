@@ -36,13 +36,21 @@ gh pr merge dev/hps --squash     # after CI goes green
 git fetch origin
 git branch -f main origin/main
 git checkout dev/hps && git reset --hard origin/main
+git push --force-with-lease origin dev/hps
 ```
 
-The last line is the one that gets skipped. A squash merge writes new SHAs
+The reset is the one that gets skipped. A squash merge writes new SHAs
 into `main`, so without it `dev/hps` and `main` diverge permanently — and
 because `strict` up-to-date is on, every later PR then demands an "update
 branch" that conflicts with changes it already merged. The reset keeps the
 two branches in lockstep, which is the relationship this repo always had.
+
+The force push at the end is not optional and was found the hard way: the
+squash commit is not a descendant of what `origin/dev/hps` pointed at, so
+after the reset the two have genuinely diverged and a plain push is
+rejected as non-fast-forward. The ruleset covers `refs/heads/main` only,
+so `dev/hps` is unprotected and `--force-with-lease` goes through. Skip it
+and the next ship's very first command fails.
 
 The 167-error type baseline lives in `scripts/check-ratchet.mjs`. Lower it
 when the count drops. Never raise it without a commit explaining what was
