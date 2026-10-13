@@ -9,7 +9,11 @@ interface Props {
   description?: string;
 }
 
-const { title, description = 'Discover Anime' } = Astro.props;
+// Site-wide default. No page overrides it, so this single string is what
+// every link preview and search result shows — it was "Discover Anime",
+// which said nothing. Matches the About page's own subtitle so the two
+// can't drift apart.
+const { title, description = 'Independent Anime Subtitles, Burmese' } = Astro.props;
 
 // Trailing slash stripped so /about/ and /about both match.
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
