@@ -983,8 +983,12 @@ a:hover {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  /* Prefixed first, standard last — same alias rule as global.css:130.
+     Was inverted here (standard first), which is the ordering the comment
+     warns about. Latent rather than broken only because Chromium does
+     honour -webkit-mask-image, unlike -webkit-backdrop-filter. */
   -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
 }
 
 .announce-track {
