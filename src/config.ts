@@ -31,6 +31,21 @@ export const SITE_URL = 'https://anixsubs.vercel.app';
 export const GOOGLE_SITE_VERIFICATION =
   '3q-WZVqYo0iPltgxUp9w4PBnt_fNajexoVTfSRrqZA0';
 
+/**
+ * Branded stand-in shown when a poster URL fails to load. Posters are
+ * i.pinimg.com links, which get taken down more often than you would hope —
+ * and when one dies the failure is silent, so it is only noticed by whoever
+ * happens to open that detail page.
+ *
+ * Both render sites must fall back: the catalog card AND the detail poster.
+ * The card had this and the detail page did not, so a dead URL left a
+ * broken 260×390 image box on the detail page while the catalog still
+ * looked healthy — the one combination that hides the problem.
+ *
+ * Shared from here so the two cannot drift apart into different paths.
+ */
+export const POSTER_FALLBACK = '/images/aniXsubs-no-photo-placeholder-v2.png';
+
 export function downloadUrl(link: string): string {
   if (/^https?:\/\//i.test(link)) return link; // legacy full URL, use as-is
   return `https://t.me/${BOT_USERNAME}?start=${link}`;

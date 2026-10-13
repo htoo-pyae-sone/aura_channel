@@ -15,15 +15,47 @@ const announce =
 
 // zz-sample-* entries are local layout fixtures — built only in dev.
 const isSample = (id: string) => id.startsWith('zz-sample-');
-const entries = (await getCollection('anime'))
-  .filter((e) => import.meta.env.DEV || !isSample(e.id))
-  .sort((a, b) => a.data.title.localeCompare(b.data.title));
+const catalog = (await getCollection('anime')).filter(
+  (e) => import.meta.env.DEV || !isSample(e.id)
+);
+
+// Seasons can arrive out of order in the file, so both the badge and the
+// sort below read the same array rather than each sorting their own copy.
+const sortedSeasons = (entry: (typeof catalog)[number]) =>
+  entry.data.seasons?.length
+    ? [...entry.data.seasons].sort((a, b) => a.season - b.season)
+    : [];
+
+// The grid groups by status — Upcoming first as a coming-soon billboard,
+// then Ongoing, then Completed — and runs A-Z inside each group, so a title
+// added later slots itself in with no maintenance. `status` is optional in
+// the schema, so anything unknown ranks last rather than crashing or
+// jumping to the top.
+const STATUS_RANK: Record<string, number> = {
+  Upcoming: 0,
+  Ongoing: 1,
+  Completed: 2,
+};
+
+// A latest season can override the title-level status (Black Clover is
+// "Ongoing" overall but its seasons are Completed then Ongoing), so rank on
+// the same effective value the card badge shows — otherwise a card labelled
+// "Completed" could sit under the Ongoing group.
+const rankOf = (entry: (typeof catalog)[number]): number => {
+  const sorted = sortedSeasons(entry);
+  const latest = sorted[sorted.length - 1] ?? null;
+  const status = latest?.status ?? entry.data.status;
+  return STATUS_RANK[status ?? ''] ?? 3;
+};
+
+const entries = catalog.sort((a, b) => {
+  const rank = rankOf(a) - rankOf(b);
+  return rank !== 0 ? rank : a.data.title.localeCompare(b.data.title);
+});
 
 const catalogData = entries.map((entry) => {
   // Card badge: latest season's count wins when seasons exist.
-  const sorted = entry.data.seasons?.length
-    ? [...entry.data.seasons].sort((a, b) => a.season - b.season)
-    : [];
+  const sorted = sortedSeasons(entry);
   const latest = sorted.length ? sorted[sorted.length - 1] : null;
   return {
     slug: entry.id,
@@ -239,6 +271,9 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
 
   <script>
     import { epLabel } from '../lib/episodes';
+    // Shared with the detail page's poster <img> so both fallbacks point at
+    // the same file and cannot drift.
+    import { POSTER_FALLBACK } from '../config';
 
     const entries = JSON.parse(document.getElementById('catalog-data').textContent);
     const grid = document.getElementById('catalog-grid');
@@ -602,8 +637,10 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
         return sorted.slice(0, 3).map((s) => `S${s}`).join('·') + `·+${sorted.length - 3}`;
       }
 
-      // Branded fallback when a poster URL dies.
-      const fallbackImg = "'/images/aniXsubs-no-photo-placeholder-v2.png'";
+      // Branded fallback when a poster URL dies. The single quotes are part
+      // of the value — this lands inside an HTML attribute delimited by
+      // double quotes, so this.src='…' has to be built into the string.
+      const fallbackImg = `'${POSTER_FALLBACK}'`;
 
       return `
         <a class="card" href="/anime/${escapeHTML(e.slug)}/">
