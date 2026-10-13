@@ -1,0 +1,63 @@
+name: CI
+
+# There was no CI at all before this: `astro check`, smoke and the build
+# only ran when someone remembered to run them. The 167-error ratchet and
+# the 12 smoke checks were conventions, not gates. This makes them gates.
+#
+# NOTE: this does not block deploys. Vercel builds `main` on push on its
+# own schedule, independently of these jobs — a red run here tells you the
+# push was wrong, it does not undo it. Making it blocking needs a branch
+# protection rule on GitHub requiring this check.
+
+on:
+  push:
+    branches: [main, dev/hps]
+  pull_request:
+    branches: [main, dev/hps]
+  workflow_dispatch: {}
+
+# A push that supersedes one already running is not worth waiting for.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Build & verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lockfile-pinned, so `astro check` sees the same TypeScript and the
+      # same dependency versions locally and here — otherwise the error
+      # count would drift between machines and the ratchet would be noise.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Cheapest and most specific first: pure text, no build, fails in
+      # under a second on the -webkit-/unprefixed ordering rule that
+      # already bit this project once (0e647bf).
+      - name: CSS prefix ordering
+        run: npm run check:css
+
+      # astro check exits 1 whenever errors exist, which would make this
+      # job permanently red at the existing 167. The wrapper captures the
+      # output and judges the number instead.
+      - name: Type error ratchet (baseline 167)
+        run: npm run check:ratchet
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke tests
+        run: npm run smoke

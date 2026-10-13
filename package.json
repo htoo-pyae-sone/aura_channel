@@ -8,7 +8,11 @@
     "build": "astro build",
     "preview": "astro preview",
     "smoke": "node scripts/smoke.mjs",
-    "fixture": "node scripts/make-sample-fixture.mjs"
+    "fixture": "node scripts/make-sample-fixture.mjs",
+    "check": "astro check",
+    "check:css": "node scripts/check-css-prefixes.mjs",
+    "check:ratchet": "node scripts/check-ratchet.mjs",
+    "verify": "npm run check:css && npm run check:ratchet && npm run build && npm run smoke"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
