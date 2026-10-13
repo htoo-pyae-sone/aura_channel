@@ -3,6 +3,20 @@
 // Content files store only the CODE (or a full https URL for legacy rows).
 export const BOT_USERNAME = 'anixsubsbot';
 
+/**
+ * Canonical origin, no trailing slash. Every absolute URL the build emits is
+ * derived from this — canonical, og:url, og:image, twitter:image, the
+ * sitemap and robots.txt's sitemap line — so when the custom domain lands,
+ * change THIS one line (plus Vercel's domain settings) and every one of
+ * them moves together. They were all relative or absent before, which meant
+ * link previews dropped the image and the two URL forms both indexed.
+ *
+ * Deliberately no trailing slash: the site links to itself without one
+ * (`/about` in the nav), and a canonical has to match the form its own
+ * internal links point at or the two signals fight each other.
+ */
+export const SITE_URL = 'https://anixsubs.vercel.app';
+
 export function downloadUrl(link: string): string {
   if (/^https?:\/\//i.test(link)) return link; // legacy full URL, use as-is
   return `https://t.me/${BOT_USERNAME}?start=${link}`;
