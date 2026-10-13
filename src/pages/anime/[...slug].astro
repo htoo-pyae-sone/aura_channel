@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { downloadUrl } from '../../config';
+import { downloadUrl, SITE_URL } from '../../config';
 import { epLabel } from '../../lib/episodes';
 
 export async function getStaticPaths() {
@@ -84,9 +84,30 @@ const seasonBadge = (() => {
 })();
 
 const EP_PAGE_SIZE = 10;
+
+// Structured data telling crawlers which work this page is about — the
+// thing that lets a search engine match the page to the title someone
+// typed. Frontmatter's `type` picks Movie vs TVSeries.
+//
+// Deliberately absent: aggregateRating. The star on the poster is a
+// third-party score, not ratings collected here, and schema.org reads
+// aggregateRating as a claim about YOUR users — shipping it would be the
+// same kind of overclaim the Terms clause was written to avoid.
+// Also omitted: numberOfEpisodes. For a series the badge shows the latest
+// season's count, which is not the total, and no honest number was on hand.
+const seriesSchema = {
+  '@context': 'https://schema.org',
+  '@type': type === 'Movie' ? 'Movie' : 'TVSeries',
+  name: title,
+  ...(titleNative && { alternateName: titleNative }),
+  url: `${SITE_URL}/anime/${entry.id}`,
+  image: poster,
+  genre: genres.join(', '),
+  ...(year && { datePublished: String(year) }),
+};
 ---
 
-<Base title={`${title} — aniXsubs`}>
+<Base title={`${title} — aniXsubs`} schema={seriesSchema}>
   <article class="detail">
   <div class="detail-side">
     <div class="detail-poster-wrap">
