@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import Analytics from '@vercel/analytics/astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
-import { SOCIAL, SITE_URL } from '../config';
+import { GOOGLE_SITE_VERIFICATION, SOCIAL, SITE_URL } from '../config';
 
 interface Props {
   title: string;
@@ -100,6 +100,9 @@ const socials = [
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#12131f" />
+    <!-- Search Console ownership proof. Must stay in the head permanently —
+         value comes from GOOGLE_SITE_VERIFICATION in config.ts. -->
+    <meta name="google-site-verification" content={GOOGLE_SITE_VERIFICATION} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content="aniXsubs" />

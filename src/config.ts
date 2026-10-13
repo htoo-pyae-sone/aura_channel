@@ -17,6 +17,20 @@ export const BOT_USERNAME = 'anixsubsbot';
  */
 export const SITE_URL = 'https://anixsubs.vercel.app';
 
+/**
+ * Google Search Console ownership token, rendered as a meta tag in the head
+ * of every page. Google only checks the home page, but rendering it
+ * site-wide costs nothing and means the tag cannot be lost to a page-level
+ * change.
+ *
+ * Per Google's own instruction this must stay up permanently — removing it
+ * does not immediately un-verify the property, but it makes a future
+ * re-verification need a code change and a deploy. To replace the token
+ * after moving Search Console accounts: change this ONE line.
+ */
+export const GOOGLE_SITE_VERIFICATION =
+  '3q-WZVqYo0iPltgxUp9w4PBnt_fNajexoVTfSRrqZA0';
+
 export function downloadUrl(link: string): string {
   if (/^https?:\/\//i.test(link)) return link; // legacy full URL, use as-is
   return `https://t.me/${BOT_USERNAME}?start=${link}`;
