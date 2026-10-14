@@ -11,7 +11,7 @@ totalEpisodes: 12
 aiAssisted: true
 episodes:
   - ep: 1
-    title: "Episode title"
+    title: "An Unwanted Repayment"
     downloads:
       - source: "Bot"
         format: "mp4"
