@@ -34,7 +34,7 @@ seasons:
             format: "mp4"
             quality: "1080p"
             size: "200 MB"
-            link: "PASTE-CODE-HERE"
+            link: "uOH5sk7ZKLTi"
 ---
 
 မှော်ပညာသာ အရာရာကို ဆုံးဖြတ်တဲ့ လောကကြီးမှာ မှော်လုံးဝမသုံးနိုင်တဲ့ ကောင်လေးတစ်ယောက်ရဲ့ အိပ်မက်က Wizard King ဖြစ်ဖို့ပါပဲ။
