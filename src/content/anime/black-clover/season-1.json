@@ -1,0 +1,20 @@
+{
+  "title": "Season 1",
+  "status": "Completed",
+  "totalEpisodes": 170,
+  "episodes": [
+    {
+      "ep": 1,
+      "title": "Asta and Yuno",
+      "downloads": [
+        {
+          "source": "Bot",
+          "format": "mp4",
+          "quality": "1080p",
+          "size": "200 MB",
+          "link": "PASTE-CODE-HERE"
+        }
+      ]
+    }
+  ]
+}

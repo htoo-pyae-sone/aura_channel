@@ -15,7 +15,7 @@ export const BOT_USERNAME = 'anixsubsbot';
  * (`/about` in the nav), and a canonical has to match the form its own
  * internal links point at or the two signals fight each other.
  */
-export const SITE_URL = 'https://anixsubs.online';
+export const SITE_URL = 'https://www.anixsubs.online';
 
 /**
  * Google Search Console ownership token, rendered as a meta tag in the head

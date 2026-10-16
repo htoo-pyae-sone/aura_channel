@@ -8,34 +8,9 @@ year: 2017
 status: "Ongoing"
 rating: 8.2
 aiAssisted: true
-seasons:
-  - season: 1
-    title: "Season 1"
-    status: "Completed"
-    totalEpisodes: 170
-    episodes:
-      - ep: 1
-        title: "Episode title"
-        downloads:
-          - source: "Bot"
-            format: "mp4"
-            quality: "1080p"
-            size: "200 MB"
-            link: "PASTE-CODE-HERE"
-  - season: 2
-    title: "Season 2"
-    status: "Ongoing"
-    totalEpisodes: "170+"
-    episodes:
-      - ep: 1
-        title: "Episode title"
-        downloads:
-          - source: "Bot"
-            format: "mp4"
-            quality: "1080p"
-            size: "200 MB"
-            link: "uOH5sk7ZKLTi"
 ---
+
+<!-- Episode list + seasons live in ./black-clover.episodes.json (sidecar). -->
 
 မှော်ပညာသာ အရာရာကို ဆုံးဖြတ်တဲ့ လောကကြီးမှာ မှော်လုံးဝမသုံးနိုင်တဲ့ ကောင်လေးတစ်ယောက်ရဲ့ အိပ်မက်က Wizard King ဖြစ်ဖို့ပါပဲ။
 

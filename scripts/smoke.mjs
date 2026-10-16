@@ -13,11 +13,11 @@
  * Exit code 1 if any check fails, so it can gate CI.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { makeFixture, FIXTURE_PATH } from './make-sample-fixture.mjs';
+import { makeFixture, FIXTURE_DIR } from './make-sample-fixture.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 4399;
@@ -163,24 +163,24 @@ async function runChecks(browser) {
     return `${r.hidden}px behind the edge fade`;
   });
 
-  await check('End key jumps to S16 and reveals it', async () => {
+  await check('End key moves focus to S16 and reveals it', async () => {
     const p = await open(browser, SAMPLE, { viewport: { width: 390, height: 844 } });
     await p.locator('.season-tab').first().focus();
     await p.keyboard.press('End');
     await p.waitForTimeout(700);
     const r = await p.evaluate(() => {
       const s = document.querySelector('.season-tabs');
-      const a = document.querySelector('.season-tab[aria-selected="true"]');
+      const a = document.activeElement;
       const b = a.getBoundingClientRect();
       const sr = s.getBoundingClientRect();
       return {
-        tab: a.textContent.trim(),
+        tab: (a.textContent || '').trim(),
         visible: b.left >= sr.left - 1 && b.right <= sr.right + 1,
       };
     });
     await p.close();
-    assert(r.tab === 'S16', `selected ${r.tab}`);
-    assert(r.visible, 'active tab scrolled out of view');
+    assert(r.tab === 'S16', `focused ${r.tab}`);
+    assert(r.visible, 'focused tab scrolled out of view');
     return `${r.tab} in view`;
   });
 
@@ -212,16 +212,16 @@ async function runChecks(browser) {
     });
     const r = await p.evaluate(() => {
       const titles = [
-        ...document.querySelectorAll('.season-panel:not([hidden]) .ep-accordion:not([hidden]) .ep-title'),
+        ...document.querySelectorAll('.ep-accordion:not([hidden]) .ep-title'),
       ];
-      const long = document.querySelector('.season-panel:not([hidden]) .ep-accordion[data-ep="5"] .ep-title');
+      const long = document.querySelector('.ep-accordion[data-ep="5"] .ep-title');
       return {
         count: titles.length,
         multiLine: titles.filter((t) => t.getBoundingClientRect().height > 30).length,
         ellipsis: getComputedStyle(long).textOverflow,
         clipped: long.scrollWidth - long.clientWidth,
         gliding: document.querySelectorAll('.ep-title.gliding').length,
-        rows: [...document.querySelectorAll('.season-panel:not([hidden]) .ep-accordion:not([hidden])')]
+        rows: [...document.querySelectorAll('.ep-accordion:not([hidden])')]
           .slice(1)
           .map((r) => Math.round(r.getBoundingClientRect().height)),
       };
@@ -241,17 +241,17 @@ async function runChecks(browser) {
       hasTouch: true,
       isMobile: true,
     });
-    const sel = '.season-panel:not([hidden]) .ep-accordion[data-ep="5"] ';
+    const sel = '.ep-accordion[data-ep="5"] ';
     await p.tap(sel + 'summary');
     await p.waitForTimeout(3600);
     const out = await p.evaluate(() => {
-      const t = document.querySelector('.season-panel:not([hidden]) .ep-accordion[data-ep="5"] .ep-title');
+      const t = document.querySelector('.ep-accordion[data-ep="5"] .ep-title');
       return { x: Math.round(t.scrollLeft), gliding: t.classList.contains('gliding') };
     });
     await p.tap(sel + 'summary');
     await p.waitForTimeout(3800);
     const back = await p.evaluate(() => {
-      const t = document.querySelector('.season-panel:not([hidden]) .ep-accordion[data-ep="5"] .ep-title');
+      const t = document.querySelector('.ep-accordion[data-ep="5"] .ep-title');
       return {
         x: Math.round(t.scrollLeft),
         gliding: t.classList.contains('gliding'),
@@ -266,21 +266,21 @@ async function runChecks(browser) {
 
   await check('hover: glides out and back (900px)', async () => {
     const p = await open(browser, SAMPLE, { viewport: { width: 900, height: 950 } });
-    const sel = '.season-panel:not([hidden]) .ep-accordion[data-ep="5"]';
+    const sel = '.ep-accordion[data-ep="5"]';
     const clipped = await p.evaluate(
-      () => document.querySelector('.season-panel:not([hidden]) .ep-accordion[data-ep="5"] .ep-title').scrollWidth -
-        document.querySelector('.season-panel:not([hidden]) .ep-accordion[data-ep="5"] .ep-title').clientWidth
+      () => document.querySelector('.ep-accordion[data-ep="5"] .ep-title').scrollWidth -
+        document.querySelector('.ep-accordion[data-ep="5"] .ep-title').clientWidth
     );
     await p.locator(sel).scrollIntoViewIfNeeded();
     await p.hover(sel + ' summary');
     await p.waitForTimeout(3600);
     const out = await p.evaluate(
-      () => Math.round(document.querySelector('.season-panel:not([hidden]) .ep-accordion[data-ep="5"] .ep-title').scrollLeft)
+      () => Math.round(document.querySelector('.ep-accordion[data-ep="5"] .ep-title').scrollLeft)
     );
     await p.mouse.move(5, 5);
     await p.waitForTimeout(3800);
     const back = await p.evaluate(() => {
-      const t = document.querySelector('.season-panel:not([hidden]) .ep-accordion[data-ep="5"] .ep-title');
+      const t = document.querySelector('.ep-accordion[data-ep="5"] .ep-title');
       return { x: Math.round(t.scrollLeft), overflow: getComputedStyle(t).textOverflow };
     });
     await p.close();
@@ -291,37 +291,44 @@ async function runChecks(browser) {
   });
 
   // --- 5. pager ------------------------------------------------------------
-  await check('pager < > returns to the top of the section (390)', async () => {
+  await check('pager navigates between episode pages and stays on the list (390)', async () => {
     const p = await open(browser, SAMPLE, { viewport: { width: 390, height: 844 } });
-    const geo = () =>
+    const state = () =>
       p.evaluate(() => {
         const sec = document.querySelector('.episodes-section');
-        const header = document.querySelector('.site-header');
-        const sticky = getComputedStyle(header).position === 'sticky' ? header.offsetHeight : 0;
-        const first = document.querySelector('.season-panel:not([hidden]) .ep-accordion:not([hidden])');
         return {
-          gap: Math.round(sec.getBoundingClientRect().top - sticky),
-          heading: document.querySelector('.episodes-heading').getBoundingClientRect().top > sticky,
-          first: first?.dataset.ep,
-          count: document.querySelector('.season-panel:not([hidden]) [data-ep-count]')?.textContent,
+          first: document.querySelector('.ep-accordion')?.dataset.ep,
+          count: document.querySelector('.ep-count')?.textContent,
+          url: location.pathname,
+          secTop: sec ? Math.round(sec.getBoundingClientRect().top) : null,
+          scrollY: Math.round(window.scrollY),
         };
       });
-    await p.locator('.season-panel:not([hidden]) [data-ep-pager]').scrollIntoViewIfNeeded();
-    await p.waitForTimeout(300);
-    await p.click('[data-ep-next]');
-    await p.waitForTimeout(1000);
-    const fwd = await geo();
-    await p.click('[data-ep-prev]');
-    await p.waitForTimeout(1000);
-    const back = await geo();
+    const before = await state();
+    await p.locator('.ep-pager').scrollIntoViewIfNeeded();
+    await p.waitForTimeout(200);
+    await Promise.all([p.waitForURL((u) => u.pathname.endsWith('/2/')), p.click('.ep-page-btn[rel="next"]')]);
+    await p.waitForTimeout(500);
+    const fwd = await state();
+    await Promise.all([
+      p.waitForURL((u) => !/\/2\/?$/.test(u.pathname)),
+      p.click('.ep-page-btn[rel="prev"]'),
+    ]);
+    await p.waitForTimeout(500);
+    const back = await state();
     await p.close();
-    assert(Math.abs(fwd.gap - 12) <= 3, `after >: ${fwd.gap}px below header`);
-    assert(fwd.heading, 'heading not visible after >');
+    assert(before.first === '01' || before.first === '1', `start first EP ${before.first}`);
+    assert(fwd.url.endsWith('/2/'), `next landed on ${fwd.url}`);
     assert(fwd.first === '11', `first row after > is EP ${fwd.first}`);
     assert(/Showing 11–12 of 12/.test(fwd.count || ''), `count: ${fwd.count}`);
-    assert(Math.abs(back.gap - 12) <= 3, `after <: ${back.gap}px below header`);
+    // The view must stay on the episode list — not jump to the top of the page.
+    assert(fwd.scrollY > 300, `page change left us at the top (scrollY=${fwd.scrollY})`);
+    assert(
+      fwd.secTop != null && fwd.secTop >= 0 && fwd.secTop < 160,
+      `episodes not parked near the top (secTop=${fwd.secTop})`
+    );
     assert(back.first === '01' || back.first === '1', `first row after < is EP ${back.first}`);
-    return `> → EP ${fwd.first} at top, < → EP ${back.first} at top`;
+    return `> → ${fwd.url} (EP ${fwd.first}, list at ${fwd.secTop}px), < → EP ${back.first}`;
   });
 
   // --- 6. deep links -------------------------------------------------------
@@ -336,6 +343,12 @@ async function runChecks(browser) {
     const seen = [];
     for (const [url, kind, value] of cases) {
       const p = await open(browser, url);
+      // The filtered grid now renders from the lazily-fetched index, so wait
+      // for the chip row (only renderPage() produces it) before measuring.
+      await p.waitForFunction(() => {
+        const el = document.getElementById('active-filters');
+        return !!el && !el.hidden;
+      });
       const r = await p.evaluate(() => ({
         open: !document.getElementById('filter-panel').hidden,
         rowHidden: document.getElementById('active-filters').hidden,
@@ -363,25 +376,60 @@ async function runChecks(browser) {
     return seen.join(', ');
   });
 
+  // --- 6b. home ships cards, index is lazy --------------------------------
+  // The home page must carry its first page of cards in the HTML (readable
+  // and clickable before any script runs), NOT re-embed the old inline
+  // catalog-data JSON — and a small catalog must not fetch the index it
+  // doesn't need.
+  await check('home ships cards in the HTML and reads fine without JS', async () => {
+    const p = await open(browser, '/');
+    const r = await p.evaluate(() => ({
+      inlineJSON: !!document.getElementById('catalog-data'),
+      cards: document.querySelectorAll('#catalog-grid > .card').length,
+      fetchUsed: performance
+        .getEntriesByType('resource')
+        .some((e) => e.name.includes('/catalog-index.json')),
+    }));
+    await p.close();
+    assert(!r.inlineJSON, 'inline catalog-data JSON is back');
+    assert(r.cards > 0, 'no server-rendered cards in the HTML');
+    assert(!r.fetchUsed, 'a small catalog fetched the index it did not need');
+
+    const ctx = await browser.newContext({ javaScriptEnabled: false });
+    const np = await ctx.newPage();
+    await np.goto(BASE + '/', { waitUntil: 'load' });
+    const noJs = await np.evaluate(() => ({
+      cards: document.querySelectorAll('#catalog-grid > .card').length,
+      href: document.querySelector('#catalog-grid > .card')?.getAttribute('href') || '',
+    }));
+    await ctx.close();
+    assert(noJs.cards > 0, `no-JS home shows ${noJs.cards} cards`);
+    assert(noJs.href.startsWith('/anime/'), `no-JS card href=${noJs.href}`);
+    return `${r.cards} cards in HTML, ${noJs.cards} clickable without JS`;
+  });
+
   // --- 7. reduced motion ---------------------------------------------------
-  await check('reduced-motion: scrolls are instant, not animated', async () => {
+  await check('reduced-motion: paging settles instantly (no animated scroll)', async () => {
     const p = await open(browser, SAMPLE, {
       viewport: { width: 390, height: 844 },
       reducedMotion: 'reduce',
     });
-    await p.locator('.season-panel:not([hidden]) [data-ep-pager]').scrollIntoViewIfNeeded();
+    await p.locator('.ep-pager').scrollIntoViewIfNeeded();
     await p.waitForTimeout(300);
-    await p.click('[data-ep-next]');
+    await Promise.all([
+      p.waitForURL((u) => u.pathname.endsWith('/2/')),
+      p.click('.ep-page-btn[rel="next"]'),
+    ]);
     await p.waitForTimeout(150);
     const early = await p.evaluate(() => window.scrollY);
-    await p.waitForTimeout(900);
+    await p.waitForTimeout(700);
     const settled = await p.evaluate(() => window.scrollY);
     await p.close();
     assert(
       Math.abs(early - settled) < 3,
-      `still animating at 150ms (${early} → ${settled})`
+      `still moving at 150ms (${early} → ${settled})`
     );
-    return `settled within 150ms at y=${settled}`;
+    return `top settled at y=${settled}`;
   });
 
   // --- 8. production build -------------------------------------------------
@@ -392,7 +440,18 @@ async function runChecks(browser) {
       encoding: 'utf8',
     });
     assert(g.status !== 0 || !g.stdout.trim(), `fixture leaked into dist:\n${g.stdout}`);
-    return 'build ✅, 0 fixture references in dist';
+    // The catalog index must ship as its own file, carry no fixture, and the
+    // home page must keep the cards inline instead of the old JSON blob.
+    const idx = path.join(ROOT, 'dist', 'catalog-index.json');
+    assert(existsSync(idx), 'dist/catalog-index.json missing');
+    assert(
+      !readFileSync(idx, 'utf8').includes('zz-sample'),
+      'fixture leaked into catalog-index.json'
+    );
+    const home = readFileSync(path.join(ROOT, 'dist', 'index.html'), 'utf8');
+    assert(!home.includes('id="catalog-data"'), 'inline catalog-data JSON is back in dist');
+    assert(home.includes('class="card"'), 'dist/index.html has no server-rendered cards');
+    return 'build ✅, 0 fixture refs, lazy index shipped';
   });
 
   // --- 9. runtime health ---------------------------------------------------
@@ -405,7 +464,7 @@ async function runChecks(browser) {
 async function main() {
   const fixture = makeFixture();
   console.log(
-    `\nsmoke: fixture ${fixture.seasons} seasons / ${fixture.episodes} episodes → ${path.relative(ROOT, fixture.path)}`
+    `\nsmoke: fixture ${fixture.seasons} seasons / ${fixture.episodes} episodes → ${path.relative(ROOT, fixture.dir)}`
   );
 
   let server = null;
@@ -419,7 +478,7 @@ async function main() {
     if (browser) await browser.close();
     stopServer(server);
     await sleep(600);
-    if (!KEEP && existsSync(FIXTURE_PATH)) rmSync(FIXTURE_PATH);
+    if (!KEEP && existsSync(FIXTURE_DIR)) rmSync(FIXTURE_DIR, { recursive: true, force: true });
     console.log(KEEP ? 'smoke: fixture kept (--keep)' : 'smoke: fixture removed');
   }
 

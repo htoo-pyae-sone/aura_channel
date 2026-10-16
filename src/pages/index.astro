@@ -1,7 +1,8 @@
 ---
-import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import { ANNOUNCEMENT } from '../config';
+import { cardHTML } from '../lib/catalog';
+import { loadCatalog } from '../lib/catalog-server';
 
 // The announcement also expires in the browser (see syncAnnounce), so it
 // disappears on schedule even if nothing is rebuilt. Checking it here too
@@ -13,72 +14,26 @@ const announce =
       : null
     : ANNOUNCEMENT;
 
-// zz-sample-* entries are local layout fixtures — built only in dev.
-const isSample = (id: string) => id.startsWith('zz-sample-');
-const catalog = (await getCollection('anime')).filter(
-  (e) => import.meta.env.DEV || !isSample(e.id)
-);
+// Every title as a plain card item in grid order (status group, then A-Z).
+// The SAME list feeds the server-rendered cards below and
+// /catalog-index.json — the lazily-fetched index the browser filters
+// against — so the two can't disagree. zz-sample-* fixtures are dev-only;
+// loadCatalog drops them from production builds.
+const entries = await loadCatalog();
 
-// Seasons can arrive out of order in the file, so both the badge and the
-// sort below read the same array rather than each sorting their own copy.
-const sortedSeasons = (entry: (typeof catalog)[number]) =>
-  entry.data.seasons?.length
-    ? [...entry.data.seasons].sort((a, b) => a.season - b.season)
-    : [];
-
-// The grid groups by status — Upcoming first as a coming-soon billboard,
-// then Ongoing, then Completed — and runs A-Z inside each group, so a title
-// added later slots itself in with no maintenance. `status` is optional in
-// the schema, so anything unknown ranks last rather than crashing or
-// jumping to the top.
-const STATUS_RANK: Record<string, number> = {
-  Upcoming: 0,
-  Ongoing: 1,
-  Completed: 2,
-};
-
-// A latest season can override the title-level status (Black Clover is
-// "Ongoing" overall but its seasons are Completed then Ongoing), so rank on
-// the same effective value the card badge shows — otherwise a card labelled
-// "Completed" could sit under the Ongoing group.
-const rankOf = (entry: (typeof catalog)[number]): number => {
-  const sorted = sortedSeasons(entry);
-  const latest = sorted[sorted.length - 1] ?? null;
-  const status = latest?.status ?? entry.data.status;
-  return STATUS_RANK[status ?? ''] ?? 3;
-};
-
-const entries = catalog.sort((a, b) => {
-  const rank = rankOf(a) - rankOf(b);
-  return rank !== 0 ? rank : a.data.title.localeCompare(b.data.title);
-});
-
-const catalogData = entries.map((entry) => {
-  // Card badge: latest season's count wins when seasons exist.
-  const sorted = sortedSeasons(entry);
-  const latest = sorted.length ? sorted[sorted.length - 1] : null;
-  return {
-    slug: entry.id,
-    title: entry.data.title,
-    poster: entry.data.poster,
-    type: entry.data.type,
-    year: entry.data.year ?? null,
-    status: latest?.status ?? entry.data.status ?? null,
-    genres: entry.data.genres,
-    rating: entry.data.rating ?? null,
-    totalEpisodes: latest?.totalEpisodes ?? entry.data.totalEpisodes ?? null,
-    seasons: sorted.map((s) => s.season),
-  };
-});
-
-const uniqueGenres = [...new Set(entries.flatMap((e) => e.data.genres))].sort();
+const uniqueGenres = [...new Set(entries.flatMap((e) => e.genres))].sort();
 const uniqueYears = [
-  ...new Set(entries.map((e) => e.data.year).filter((y): y is number => typeof y === 'number')),
+  ...new Set(entries.map((e) => e.year).filter((y): y is number => typeof y === 'number')),
 ].sort((a, b) => b - a);
 
-// Escape `<` so frontmatter values (titles, etc.) can't break out of the
-// <script type="application/json"> block via `</script>`.
-const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
+// How many cards ship IN the HTML. 50 covers every page-size option
+// (10/20/50), so a first visit renders instantly with no fetch — and the
+// page's payload stays flat as the catalog grows, because only this many
+// cards ever ship inline. Everything past the first page (and all
+// filtering/search) uses /catalog-index.json, fetched on demand by the
+// script below.
+const SERVER_RENDER_MAX = 50;
+const initialCards = entries.slice(0, SERVER_RENDER_MAX).map(cardHTML).join('');
 ---
 
 <Base title="aniXsubs">
@@ -254,7 +209,19 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
 
   <div class="active-filters" id="active-filters" hidden></div>
 
-  <div class="catalog-grid" id="catalog-grid" tabindex="-1"></div>
+  {/* Server-rendered first page of cards: the page paints (and works, links
+      and all) before any script runs, and the payload stays bounded — only
+      SERVER_RENDER_MAX cards ever ship, however many titles exist. The
+      script re-renders from the lazily-fetched index once you filter, page,
+      or arrive deep-linked. data-total tells it whether the catalog even
+      needs paging. */}
+  <div
+    class="catalog-grid"
+    id="catalog-grid"
+    tabindex="-1"
+    data-total={entries.length}
+    set:html={initialCards}
+  />
   <div class="empty-state" id="empty-state" tabindex="-1" hidden></div>
 
   <div class="ep-pager ep-pager-bottom catalog-pager" id="cat-pager" hidden>
@@ -267,15 +234,36 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
     </div>
   </div>
 
-  <script type="application/json" id="catalog-data" set:html={catalogJSON} />
-
   <script>
-    import { epLabel } from '../lib/episodes';
-    // Shared with the detail page's poster <img> so both fallbacks point at
-    // the same file and cannot drift.
-    import { POSTER_FALLBACK } from '../config';
+    import { cardHTML, escapeHTML, type CatalogItem } from '../lib/catalog';
 
-    const entries = JSON.parse(document.getElementById('catalog-data').textContent);
+    // The full catalog index is NOT inline in the page — the HTML carries only
+    // the first cards (SERVER_RENDER_MAX in the frontmatter), and the rest is
+    // fetched lazily: for a deep-linked filter or ?page=, for paging past the
+    // rendered cards, or on the first search/filter/page-size interaction. A
+    // small catalog that's never filtered never downloads it at all.
+    let entries: CatalogItem[] = [];
+    let entriesLoaded = false;
+    let entriesFetch: Promise<void> | null = null;
+    function ensureEntries(): Promise<void> {
+      if (entriesLoaded) return Promise.resolve();
+      if (!entriesFetch) {
+        entriesFetch = fetch('/catalog-index.json')
+          .then((res) => {
+            if (!res.ok) throw new Error(`catalog-index.json: HTTP ${res.status}`);
+            return res.json();
+          })
+          .then((data: CatalogItem[]) => {
+            entries = data;
+            entriesLoaded = true;
+          })
+          .catch((err) => {
+            entriesFetch = null; // let the next action retry
+            console.error(err);
+          });
+      }
+      return entriesFetch;
+    }
     const grid = document.getElementById('catalog-grid');
     const header = document.querySelector('.site-header');
     const emptyState = document.getElementById('empty-state');
@@ -613,59 +601,11 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
         <button type="button" class="empty-cta" data-empty-clear>Clear all filters</button>`;
     }
 
-    function escapeHTML(str) {
-      if (!str) return '';
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
+    let currentFiltered: CatalogItem[] = [];
 
-    function cardHTML(e) {
-      const epText = epLabel(e.totalEpisodes);
-      const bits = [e.type, epText].filter(Boolean).join(' · ');
-      const ratingBadge = e.rating ? `<span class="rating-badge">★ ${e.rating.toFixed(1)}</span>` : '';
-      const statusBadge = e.status ? `<span class="status-badge status-${e.status.toLowerCase()}">${e.status}</span>` : '';
-
-      function seasonLabel(seasons) {
-        if (!seasons || seasons.length < 2) return '';
-        const sorted = [...seasons].sort((a, b) => a - b);
-        const contiguous = sorted.every((s, i) => i === 0 || s === sorted[i - 1] + 1);
-        if (contiguous) return `S${sorted[0]}–S${sorted[sorted.length - 1]}`;
-        if (sorted.length <= 3) return sorted.map((s) => `S${s}`).join('·');
-        return sorted.slice(0, 3).map((s) => `S${s}`).join('·') + `·+${sorted.length - 3}`;
-      }
-
-      // Branded fallback when a poster URL dies. The single quotes are part
-      // of the value — this lands inside an HTML attribute delimited by
-      // double quotes, so this.src='…' has to be built into the string.
-      const fallbackImg = `'${POSTER_FALLBACK}'`;
-
-      return `
-        <a class="card" href="/anime/${escapeHTML(e.slug)}/">
-          <div class="card-poster-wrap">
-            <img 
-              class="card-poster" 
-              src="${escapeHTML(e.poster)}" 
-              alt="${escapeHTML(e.title)} cover art" 
-              loading="lazy" 
-              decoding="async" 
-              onerror="this.onerror=null;this.src=${fallbackImg};" 
-            />
-            ${ratingBadge}
-            ${statusBadge}
-          </div>
-          <div class="card-body">
-            <span class="card-slot">${bits}</span>
-            <h2 class="card-title">${escapeHTML(e.title)}</h2>
-          </div>
-        </a>`;
-    }
-
-    let currentFiltered = [];
-
-    function renderPage() {
+    async function renderPage() {
+      // Filtering needs the whole catalog, which the HTML no longer carries.
+      await ensureEntries();
       currentFiltered = applyFilters();
       const pages = Math.max(1, Math.ceil(currentFiltered.length / pageSize));
       state.page = Math.max(0, Math.min(state.page, pages - 1));
@@ -941,7 +881,21 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       if (btn) gotoPage(parseInt(btn.dataset.p, 10));
     });
 
-    // Initial render (?page= restores back-button position)
-    renderPage();
+    // Initial render. The server already put the first page of cards in the
+    // HTML, so a plain visit to a catalog that fits on one page is finished —
+    // no fetch, no re-render, no JS needed to read it. Anything else (a
+    // deep-linked filter or ?page=, or more titles than this page size)
+    // brings the lazily-fetched index along. syncSelectStates() still runs:
+    // it sizes the Page/NN label and the field pills, and needs no index.
+    syncSelectStates();
+    const total = Number(grid?.dataset.total || 0);
+    const deepLinked =
+      state.search !== '' ||
+      state.type !== 'All' ||
+      state.status !== 'All' ||
+      state.genre !== 'All' ||
+      state.year !== 'All' ||
+      state.page > 0;
+    if (total === 0 || deepLinked || total > pageSize) renderPage();
   </script>
 </Base>

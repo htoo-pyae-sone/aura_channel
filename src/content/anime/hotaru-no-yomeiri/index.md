@@ -9,15 +9,6 @@ status: "Ongoing"
 rating: 7.92
 totalEpisodes: 12
 aiAssisted: true
-episodes:
-  - ep: 1
-    title: "An Unwanted Repayment"
-    downloads:
-      - source: "Bot"
-        format: "mp4"
-        quality: "1080p"
-        size: "539 MB"
-        link: "kyDQ4rXfHDOu"
 ---
 
 "လူသတ်သမားနဲ့ လက်ထပ်ဖို့ ကမ်းလှမ်းလိုက်တဲ့ မိန်းကလေးတစ်ယောက် — အဲဒီ လက်ထပ်ခြင်းက သူ့အသက်ကို ကယ်တင်ဖို့ပါ..."

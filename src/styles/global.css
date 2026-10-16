@@ -2035,6 +2035,11 @@ a:hover {
 /* ========== Accordion Episodes & Downloads Section ========== */
 .episodes-section {
   margin-top: 3.5rem;
+  /* Prev/next and the season tabs link to #episodes, so a page change lands
+     here instead of at the top of the document — the view stays on the list,
+     like the old in-place pager. This is the no-JS clearance (past the sticky
+     header); the script refines it to the exact 12px gap when JS runs. */
+  scroll-margin-top: 6rem;
 }
 
 .episodes-head {
@@ -2139,7 +2144,7 @@ a:hover {
   color: var(--text);
 }
 
-.season-tab[aria-selected='true'] {
+.season-tab[aria-current='page'] {
   color: var(--text);
   border-color: rgba(var(--accent-rgb), 0.5);
   background: rgba(var(--accent-rgb), 0.16);
