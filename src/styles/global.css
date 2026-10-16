@@ -1287,6 +1287,17 @@ a:hover {
   padding: 1.5rem clamp(1.25rem, 4vw, 3rem) 2rem;
 }
 
+/* A deep-linked filter (?genre=…, ?page=2) can't be applied until the
+   lazily-fetched index arrives, so without this the server-rendered
+   UNFILTERED cards would show for a beat before the filtered grid replaces
+   them. The parse-time script in index.astro adds the class before the grid
+   is even parsed; the main script removes it the moment the filtered grid
+   renders, and a 5s timeout there is the safety net. Without JS the class is
+   never added, so the cards stay visible. */
+html.pending-filter #catalog-grid {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .catalog-grid {
     grid-template-columns: repeat(2, 1fr);

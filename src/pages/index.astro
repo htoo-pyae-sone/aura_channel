@@ -209,6 +209,37 @@ const initialCards = entries.slice(0, SERVER_RENDER_MAX).map(cardHTML).join('');
 
   <div class="active-filters" id="active-filters" hidden></div>
 
+  {/* A deep-linked filter (?genre=…, ?page=2) can't be applied until the
+      lazily-fetched index arrives — so without this, the server-rendered
+      UNFILTERED cards below would be visible for a beat before the filtered
+      grid replaces them ("everything → filtered" flash). This runs at parse
+      time, before the grid below is even parsed — hence before first paint —
+      and holds the grid out of view; renderPage() removes the class the
+      moment the filtered grid lands (see the main script).
+
+      Its conditions mirror that script's `deepLinked` exactly (q/type/
+      status/genre/year set, or page > 1) — keep the two in sync. A plain
+      visit is untouched, and WITHOUT JS this never runs, so the class is
+      never added and the cards stay visible. The timeout is a safety net:
+      if the main script ever dies before rendering, the grid comes back
+      after 5s rather than staying hidden forever. */}
+  <script is:inline>
+    (function () {
+      var p = new URLSearchParams(location.search);
+      var q = p.get('q') || '';
+      var pick = function (k) { var v = p.get(k); return v && v !== 'All' ? v : ''; };
+      var pageNo = parseInt(p.get('page') || '', 10);
+      var deep =
+        !!q || !!pick('type') || !!pick('status') || !!pick('genre') ||
+        !!pick('year') || pageNo > 1;
+      if (!deep) return;
+      document.documentElement.classList.add('pending-filter');
+      setTimeout(function () {
+        document.documentElement.classList.remove('pending-filter');
+      }, 5000);
+    })();
+  </script>
+
   {/* Server-rendered first page of cards: the page paints (and works, links
       and all) before any script runs, and the payload stays bounded — only
       SERVER_RENDER_MAX cards ever ship, however many titles exist. The
@@ -614,6 +645,11 @@ const initialCards = entries.slice(0, SERVER_RENDER_MAX).map(cardHTML).join('');
       const start = state.page * pageSize;
       const visibleItems = currentFiltered.slice(start, start + pageSize);
       grid.innerHTML = visibleItems.map(cardHTML).join('');
+      // The parse-time script may be holding the grid out of view (deep-
+      // linked landing — see the script above the grid): the correct grid
+      // is here now, in every path this function takes (full page, empty
+      // state, or a failed fetch rendering an empty list).
+      document.documentElement.classList.remove('pending-filter');
 
       const isEmpty = currentFiltered.length === 0;
       emptyState.hidden = !isEmpty;
@@ -887,6 +923,10 @@ const initialCards = entries.slice(0, SERVER_RENDER_MAX).map(cardHTML).join('');
     // deep-linked filter or ?page=, or more titles than this page size)
     // brings the lazily-fetched index along. syncSelectStates() still runs:
     // it sizes the Page/NN label and the field pills, and needs no index.
+    //
+    // `deepLinked` must stay in step with the parse-time script above the
+    // grid: it HIDES the server cards for exactly these conditions until the
+    // filtered render below removes the class.
     syncSelectStates();
     const total = Number(grid?.dataset.total || 0);
     const deepLinked =

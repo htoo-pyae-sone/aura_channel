@@ -290,6 +290,49 @@ async function runChecks(browser) {
     return `out ${out}px → back to ${back.x}`;
   });
 
+  // --- 4b. synopsis: collapsed at parse time -------------------------------
+  // Reloading must not flash the full story and then snap down to "Read
+  // more" — the collapse has to be in the FIRST paint. Stall every external
+  // script so only the parse-time inline script can have run, and check the
+  // collapsed state; then check the no-JS path still shows everything.
+  await check('synopsis is collapsed in the first paint (no reload flicker)', async () => {
+    const ctx = await browser.newContext();
+    const p = await ctx.newPage();
+    // Stall module scripts for 1.5s — anything we see now came from the
+    // parse-time script alone. (Stall, not abort: no console errors.)
+    await p.route('**/*', async (route) => {
+      if (route.request().resourceType() === 'script') {
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      await route.continue();
+    });
+    await p.goto(BASE + BC, { waitUntil: 'commit' });
+    await p.waitForFunction(() => document.getElementById('synopsis') !== null);
+    const early = await p.evaluate(() => ({
+      collapsed: document.getElementById('synopsis').classList.contains('is-collapsed'),
+      shown: !document.getElementById('synopsis-toggle').hidden,
+      expanded: document.getElementById('synopsis-toggle').getAttribute('aria-expanded'),
+      label: document.querySelector('[data-synopsis-label]')?.textContent?.trim(),
+    }));
+    await ctx.close();
+    assert(early.collapsed, 'synopsis not collapsed before any module script ran');
+    assert(early.shown, 'Read more button not revealed at parse time');
+    assert(early.expanded === 'false', `arrow would point up (aria-expanded=${early.expanded})`);
+    assert(early.label === 'Read more', `label=${early.label}`);
+
+    const noJs = await browser.newContext({ javaScriptEnabled: false });
+    const np = await noJs.newPage();
+    await np.goto(BASE + BC, { waitUntil: 'load' });
+    const noJsState = await np.evaluate(() => ({
+      collapsed: document.getElementById('synopsis').classList.contains('is-collapsed'),
+      shown: !document.getElementById('synopsis-toggle').hidden,
+    }));
+    await noJs.close();
+    assert(!noJsState.collapsed, 'no-JS synopsis was collapsed');
+    assert(!noJsState.shown, 'no-JS saw a Read more button it cannot use');
+    return `first paint: collapsed + Read more ⌄ · no-JS: full text`;
+  });
+
   // --- 5. pager ------------------------------------------------------------
   await check('pager navigates between episode pages and stays on the list (390)', async () => {
     const p = await open(browser, SAMPLE, { viewport: { width: 390, height: 844 } });
@@ -435,6 +478,57 @@ async function runChecks(browser) {
     assert(noJs.cards > 0, `no-JS home shows ${noJs.cards} cards`);
     assert(noJs.href.startsWith('/anime/'), `no-JS card href=${noJs.href}`);
     return `${r.cards} cards in HTML, ${noJs.cards} clickable without JS`;
+  });
+
+  // --- 6c. deep-linked landing hides the unfiltered cards ------------------
+  // With the index fetched lazily, a filtered deep link would otherwise show
+  // the server-rendered UNFILTERED cards for a beat. The parse-time script
+  // must hold them out of view until the filtered grid lands — while plain
+  // visits and no-JS visitors keep their cards.
+  await check('deep-linked landing hides server cards until the filter lands', async () => {
+    const ctx = await browser.newContext();
+    const p = await ctx.newPage();
+    track(p, '/?genre=Action (delayed index)');
+    // Stall the index fetch so the pre-render state is observable.
+    await p.route('**/catalog-index.json', async (route) => {
+      await new Promise((r) => setTimeout(r, 1200));
+      await route.continue();
+    });
+    await p.goto(BASE + '/?genre=Action', { waitUntil: 'commit' });
+    await p.waitForFunction(() => document.querySelector('#catalog-grid') !== null);
+    const during = await p.evaluate(() => ({
+      marked: document.documentElement.classList.contains('pending-filter'),
+      gridHidden:
+        getComputedStyle(document.getElementById('catalog-grid')).display === 'none',
+    }));
+    assert(during.marked, 'parse-time script did not mark the filtered landing');
+    assert(during.gridHidden, 'grid still visible while the index loads');
+    // Wait for the filtered render itself. The class clearing is the exact
+    // signal renderPage() gives when the correct grid is in place — the chip
+    // row can't be the gate because it appears at init, before the fetch.
+    await p.waitForFunction(
+      () => !document.documentElement.classList.contains('pending-filter'),
+      undefined,
+      { timeout: 8000 }
+    );
+    const after = await p.evaluate(() => ({
+      marked: document.documentElement.classList.contains('pending-filter'),
+      cards: document.querySelectorAll('#catalog-grid > .card').length,
+    }));
+    await ctx.close();
+    assert(!after.marked, 'grid still hidden after the filtered render');
+    assert(after.cards > 0, `no filtered cards (${after.cards})`);
+
+    // Without JS the hiding never happens — filtered or not, cards stay put.
+    const noJs = await browser.newContext({ javaScriptEnabled: false });
+    const np = await noJs.newPage();
+    await np.goto(BASE + '/?genre=Action', { waitUntil: 'load' });
+    const noJsCards = await np.evaluate(
+      () => document.querySelectorAll('#catalog-grid > .card').length
+    );
+    await noJs.close();
+    assert(noJsCards > 0, `no-JS filtered landing shows ${noJsCards} cards`);
+    return `hidden while loading → ${after.cards} filtered, ${noJsCards} no-JS`;
   });
 
   // --- 7. reduced motion ---------------------------------------------------

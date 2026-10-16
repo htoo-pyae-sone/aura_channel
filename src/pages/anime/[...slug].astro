@@ -239,6 +239,36 @@ const seriesSchema = {
       </button>
     </div>
 
+    {/* Collapse the synopsis at PARSE time — before first paint — so a reload
+        doesn't flash the full story and then snap down to "Read more ⌄" (what
+        happened when the module script below was the first to collapse, one
+        frame late). It mirrors that script exactly: same condition (more than
+        one paragraph) and the same "clip only if it actually overflows" check,
+        measured synchronously here so the first paint is already final; its
+        init setCollapsed(true) then re-measures with the final webfont and
+        adopts the same state. Without JS neither runs: the whole synopsis
+        stays visible and buttonless, exactly as before. */}
+    <script is:inline>
+      (function () {
+        var syn = document.getElementById('synopsis');
+        var btn = document.getElementById('synopsis-toggle');
+        if (!syn || !btn) return;
+        var paras = [];
+        for (var i = 0; i < syn.children.length; i += 1) {
+          if (!syn.children[i].classList.contains('ai-credit')) paras.push(syn.children[i]);
+        }
+        if (paras.length <= 1) return;
+        var first = paras[0];
+        syn.classList.add('is-collapsed');
+        syn.classList.add('is-clipped');
+        if (first.scrollHeight <= first.clientHeight + 2) {
+          syn.classList.remove('is-clipped');
+        }
+        btn.hidden = false;
+        btn.setAttribute('aria-expanded', 'false');
+      })();
+    </script>
+
       {hasEpisodes && (
         <div class="episodes-section" id="episodes">
           <div class="episodes-head">
@@ -439,6 +469,9 @@ const seriesSchema = {
       // Synopsis: collapse to the first paragraph (with a fade on the tail)
       // and an explicit Read more / Show less button, only when there is more
       // to read. Without JS the button stays hidden and everything is visible.
+      // The INITIAL collapse already happened at parse time (inline script
+      // above) so no reload flicker; the setCollapsed(true) below re-measures
+      // with the final font and lands in the same state.
       const synopsis = document.getElementById('synopsis');
       const synopsisToggle = document.getElementById('synopsis-toggle');
       if (synopsis && synopsisToggle) {
