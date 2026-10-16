@@ -15,7 +15,7 @@ export const BOT_USERNAME = 'anixsubsbot';
  * (`/about` in the nav), and a canonical has to match the form its own
  * internal links point at or the two signals fight each other.
  */
-export const SITE_URL = 'https://anixsubs.vercel.app';
+export const SITE_URL = 'https://anixsubs.online';
 
 /**
  * Google Search Console ownership token, rendered as a meta tag in the head
@@ -66,7 +66,7 @@ export function downloadUrl(link: string): string {
  */
 export const ANNOUNCEMENT: { text: string; until?: string } | null = {
   // Permanent welcome — no `until`, so it stays up until this is edited.
-  text: 'Welcome! Stream MMSub anime in the best quality at full speed',
+  text: 'Welcome to aniXsubs! Enjoy quality Myanmar-subtitled anime, new episode updates, and easy access through our website and Telegram bot.',
 };
 
 /**

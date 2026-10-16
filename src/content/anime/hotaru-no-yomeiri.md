@@ -1,5 +1,5 @@
 ---
-title: "Hotaru no Yomeiri"
+title: "Firefly Wedding"
 titleNative: "ホタルの嫁入り"
 poster: "https://i.pinimg.com/736x/f4/a8/bc/f4a8bc1be02300e167410fc183c341b7.jpg"
 genres: ["Romance", "Historical"]
@@ -16,8 +16,8 @@ episodes:
       - source: "Bot"
         format: "mp4"
         quality: "1080p"
-        size: "200 MB"
-        link: "PASTE-CODE-HERE"
+        size: "539 MB"
+        link: "kyDQ4rXfHDOu"
 ---
 
 "လူသတ်သမားနဲ့ လက်ထပ်ဖို့ ကမ်းလှမ်းလိုက်တဲ့ မိန်းကလေးတစ်ယောက် — အဲဒီ လက်ထပ်ခြင်းက သူ့အသက်ကို ကယ်တင်ဖို့ပါ..."

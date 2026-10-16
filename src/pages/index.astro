@@ -572,7 +572,7 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       if (!constraints.length) {
         emptyState.innerHTML = `${EMPTY_ICON}
           <p class="empty-title">Nothing here yet</p>
-          <p class="empty-sub">No titles have been added so far — check back soon.</p>`;
+          <p class="empty-sub">No titles have been added yet. Check back soon.</p>`;
         return;
       }
 
@@ -592,10 +592,10 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
       // there is — name the miss and offer to clear just the query.
       if (constraints.length === 1 && constraints[0].key === 'search') {
         emptyState.innerHTML = `${EMPTY_ICON}
-          <p class="empty-title">No title matches</p>
-          <p class="empty-sub">Nothing in the catalog matches
-            &ldquo;${escapeHTML(state.search.trim())}&rdquo;. Check the spelling, or
-            clear it to browse everything.</p>
+          <p class="empty-title">No matching titles</p>
+          <p class="empty-sub">
+            Check the spelling of &ldquo;${escapeHTML(state.search.trim())}&rdquo;,
+            or clear your search to browse all titles.</p>
           <button type="button" class="empty-cta" data-empty-drop="search">Clear search</button>`;
         return;
       }
@@ -608,7 +608,7 @@ const catalogJSON = JSON.stringify(catalogData).replace(/</g, '\\u003c');
         .join('');
       emptyState.innerHTML = `${EMPTY_ICON}
         <p class="empty-title">Nothing matches yet</p>
-        <p class="empty-sub">No titles match all of these at once &mdash; remove one to widen the search:</p>
+        <p class="empty-sub">New titles will appear here as they’re added.</p>
         <div class="empty-chips">${chips}</div>
         <button type="button" class="empty-cta" data-empty-clear>Clear all filters</button>`;
     }
