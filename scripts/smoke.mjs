@@ -331,6 +331,35 @@ async function runChecks(browser) {
     return `> → ${fwd.url} (EP ${fwd.first}, list at ${fwd.secTop}px), < → EP ${back.first}`;
   });
 
+  // --- 5b. season tabs hold still ------------------------------------------
+  // Unlike the pager (which parks at the list top on purpose), tapping another
+  // season must not move the viewport: the new season's list appears at the
+  // same height the old one left.
+  await check('season tap holds the viewport still (no up/down jump)', async () => {
+    const p = await open(browser, SAMPLE);
+    await p.evaluate(() => {
+      const sec = document.querySelector('.episodes-section');
+      if (!sec) throw new Error('no .episodes-section');
+      window.scrollTo(0, sec.getBoundingClientRect().top + window.scrollY + 500);
+    });
+    await p.waitForTimeout(100);
+    const before = await p.evaluate(() => window.scrollY);
+    assert(before > 100, `could not scroll mid-list (y=${before})`);
+    // Programmatic click on purpose: Playwright's own click would first
+    // scroll the tab strip back into view, moving the very position measured.
+    await p.evaluate(() => {
+      const tab = document.querySelector('.season-tab:not([aria-current])');
+      if (!tab) throw new Error('no other-season tab');
+      tab.click();
+    });
+    await p.waitForURL((u) => /\/s2\//.test(u.pathname));
+    await p.waitForTimeout(400);
+    const after = await p.evaluate(() => window.scrollY);
+    await p.close();
+    assert(Math.abs(after - before) < 8, `viewport jumped: ${before} → ${after}`);
+    return `S1 y=${before} → S2 y=${after}`;
+  });
+
   // --- 6. deep links -------------------------------------------------------
   // Deep links narrow the catalog but must NOT yank the filter panel open —
   // the standing chip row names what's active instead.
