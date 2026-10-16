@@ -14,6 +14,15 @@
  *  the compact "Series ·" prefix. */
 export const EP_UNKNOWN = '???';
 
+/** How many episodes one generated page carries.
+ *
+ *  Episodes used to all ship in one HTML file and get paged client-side; they
+ *  now live behind real routes (`/anime/<id>/`, `/anime/<id>/2/`, …) so a long
+ *  season never bloats a single page. 10 matches the rhythm the pager already
+ *  had, and keeps every page small on a phone. Tunable — bump it and the route
+ *  count drops with no other change. */
+export const EP_PAGE_SIZE = 10;
+
 type EpisodeCount = number | string | null | undefined;
 
 /** 12 → "12 EP" · 170 → "170 EP" · "170+" → "170+ EP" · "???" → "??? EP".

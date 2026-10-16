@@ -9,23 +9,6 @@ status: "Completed"
 rating: 8.43
 totalEpisodes: 12
 aiAssisted: true
-episodes:
-  - ep: 1
-    title: "An Encounter"
-    downloads:
-      - source: "Bot"
-        format: "mp4"
-        quality: "1080p"
-        size: "207 MB"
-        link: "GPvylVgduQJh"
-  - ep: 2
-    title: "Koharu Fuyutsuki"
-    downloads:
-      - source: "Bot"
-        format: "mp4"
-        quality: "1080p"
-        size: "203 MB"
-        link: "AABP2e6cd78ef878"
 ---
 
 "ကြယ်လေးတွေ ဘယ်လောက်လှလဲ အားလုံးသိပေမယ့်၊ အဲဒီအလှကို မျက်စိနဲ့ မမြင်ရတဲ့သူအတွက် ဘယ်လို ဖော်ပြပေးမလဲ..."

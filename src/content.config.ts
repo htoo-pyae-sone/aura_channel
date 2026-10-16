@@ -1,50 +1,28 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { EP_UNKNOWN } from './lib/episodes';
+import { episodeSchema, seasonSchema, totalEpCount } from './lib/episode-schema';
 
 const httpsUrl = z
   .url()
   .refine((v) => v.startsWith('https://'), { message: 'Only https URLs allowed' });
 
-// Download target: either a bare bot CODE (preferred — the username comes
-// from src/config.ts, so a bot swap is a one-line change) or a legacy full
-// https URL (kept working as-is).
-const downloadTarget = z
-  .string()
-  .min(1)
-  .refine((v) => /^https:\/\//i.test(v) || /^[A-Za-z0-9_-]{6,64}$/.test(v), {
-    message: 'Must be a bare CODE or a full https URL',
-  });
-
-const episodeSchema = z.object({
-  ep: z.number(),
-  title: z.string().optional(),
-  downloads: z.array(
-    z.object({
-      source: z.string(),
-      format: z.enum(['mkv', 'mp4']),
-      quality: z.string(),
-      size: z.string(),
-      link: downloadTarget,
-    })
-  ),
-});
-
-const totalEpCount = z
-  .union([z.number(), z.literal(EP_UNKNOWN), z.string().regex(/^\d+\+$/)])
-  .optional();
-
-const seasonSchema = z.object({
-  season: z.number(),
-  title: z.string().optional(),
-  status: z.enum(['Ongoing', 'Completed', 'Upcoming']).optional(),
-  totalEpisodes: totalEpCount,
-  episodes: z.array(episodeSchema),
-});
-
 const anime = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/anime' }),
+  loader: glob({
+    pattern: '**/*.md',
+    base: './src/content/anime',
+    // Each title lives in its own folder (`<slug>/index.md`) so many titles
+    // stay navigable. Derive the id from the FOLDER name — not the file path —
+    // so a title's URL stays the clean `/anime/<slug>/`. Flat `<slug>.md`
+    // files still work (id = the file name), which keeps things correct during
+    // any migration between the two layouts.
+    generateId: ({ entry }) => {
+      const parts = entry.split('/');
+      const file = parts.pop(); // e.g. "index.md" or "re-zero.md"
+      if (file === 'index.md') return parts.join('/');
+      return entry.replace(/\.md$/, '');
+    },
+  }),
   schema: z.object({
     title: z.string(),
     titleNative: z.string().optional(),

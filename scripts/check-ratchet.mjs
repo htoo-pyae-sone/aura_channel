@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * The 167-error ratchet, enforced.
+ * The 166-error ratchet, enforced.
  *
- * This codebase carries 167 pre-existing type errors from before this
+ * This codebase carries 166 pre-existing type errors from before this
  * session's work. They are not being fixed here — that is a separate,
  * large job — but the count must never grow, or a refactor silently
  * swallows another dozen and nobody notices until the pile is unclimbable.
@@ -21,7 +21,7 @@
 import { spawnSync } from 'node:child_process';
 
 /** Lower this when the count drops. Never raise it without justification. */
-const BASELINE = 167;
+const BASELINE = 158;
 
 const ASTRO = process.platform === 'win32' ? 'astro.cmd' : './node_modules/.bin/astro';
 

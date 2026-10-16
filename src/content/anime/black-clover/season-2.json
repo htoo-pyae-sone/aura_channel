@@ -1,0 +1,33 @@
+{
+  "title": "Season 2",
+  "status": "Ongoing",
+  "totalEpisodes": "170+",
+  "episodes": [
+    {
+      "ep": 171,
+      "title": "The Battle Begins",
+      "downloads": [
+        {
+          "source": "Bot",
+          "format": "mp4",
+          "quality": "1080p",
+          "size": "647 MB",
+          "link": "K1ybiwfDONvP"
+        }
+      ]
+    },
+    {
+      "ep": 172,
+      "title": "The Battle Begins",
+      "downloads": [
+        {
+          "source": "Bot",
+          "format": "mp4",
+          "quality": "1080p",
+          "size": "656 MB",
+          "link": "WBGOGMqBFLSp"
+        }
+      ]
+    }
+  ]
+}
