@@ -5,7 +5,7 @@ poster: "https://i.pinimg.com/736x/aa/77/4a/aa774a16900f376f5889b3a08a75b23a.jpg
 genres: ["Action", "Drama", "Fantasy", "Thriller"]
 type: "Series"
 year: 2016
-status: "Upcoming"
+status: "Completed"
 rating: 8.25
 totalEpisodes: "84+"
 aiAssisted: true
