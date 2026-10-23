@@ -1,0 +1,20 @@
+{
+    "title": "Season 1",
+    "status": "Completed",
+    "totalEpisodes": 25,
+    "episodes": [
+        {
+            "ep": 1,
+            "title": "The End of the Beginning and the Beginning of the End",
+            "downloads": [
+                {
+                    "source": "Bot",
+                    "format": "mp4",
+                    "quality": "1080p",
+                    "size": "682 MB",
+                    "link": "uMtLSJDyrJE9"
+                }
+            ]
+        }
+    ]
+}
