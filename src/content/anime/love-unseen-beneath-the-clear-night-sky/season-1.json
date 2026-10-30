@@ -1,0 +1,19 @@
+{
+  "status": "Completed",
+  "totalEpisodes": 12,
+  "episodes": [
+    {
+      "ep": 1,
+      "title": "An Encounter",
+      "downloads": [
+        {
+          "source": "Bot",
+          "format": "mp4",
+          "quality": "1080p",
+          "size": "565 MB",
+          "link": "9yM2Mb8kbPdW"
+        }
+      ]
+    }
+  ]
+}
