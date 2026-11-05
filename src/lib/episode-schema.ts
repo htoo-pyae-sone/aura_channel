@@ -37,6 +37,22 @@ export const episodeSchema = z.object({
   ),
 });
 
+/**
+ * A pre-built Telegram batch. The bot sends the episodes individually; the
+ * website only needs the range, an optional quality label, and the batch code.
+ */
+export const batchSchema = z
+  .object({
+    from: z.number().int().positive(),
+    to: z.number().int().positive(),
+    quality: z.string().optional(),
+    link: downloadTarget,
+  })
+  .refine((batch) => batch.to >= batch.from, {
+    message: '`to` must be greater than or equal to `from`',
+    path: ['to'],
+  });
+
 export const totalEpCount = z
   .union([z.number(), z.literal(EP_UNKNOWN), z.string().regex(/^\d+\+$/)])
   .optional();
@@ -46,6 +62,7 @@ export const seasonSchema = z.object({
   title: z.string().optional(),
   status: z.enum(['Ongoing', 'Completed', 'Upcoming']).optional(),
   totalEpisodes: totalEpCount,
+  batches: z.array(batchSchema).optional(),
   episodes: z.array(episodeSchema),
 });
 
@@ -59,9 +76,11 @@ export const seasonFileSchema = z.object({
   title: z.string().optional(),
   status: z.enum(['Ongoing', 'Completed', 'Upcoming']).optional(),
   totalEpisodes: totalEpCount,
+  batches: z.array(batchSchema).optional(),
   episodes: z.array(episodeSchema),
 });
 
 export type Episode = z.infer<typeof episodeSchema>;
+export type Batch = z.infer<typeof batchSchema>;
 export type Season = z.infer<typeof seasonSchema>;
 export type SeasonFile = z.infer<typeof seasonFileSchema>;

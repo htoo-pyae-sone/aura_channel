@@ -1,7 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
 import SwipeNav from '../components/SwipeNav.astro';
-import { BOT_USERNAME } from '../config';
 
 const pages = [
   { href: '/about', label: 'About' },
@@ -18,7 +17,7 @@ const guideContent = [
   {
     title: '2. Choose an episode',
     description:
-      'Open “Episodes & Downloads” and expand an episode. You can also enter its number in the EP box. Select a download option to open the Telegram bot with the episode link attached.',
+      'Open “Episodes & Downloads” and expand an episode. You can also enter its number in the EP box. For available multi-episode ranges, open Batch downloads; Telegram sends those episodes one by one.',
   },
   {
     title: '3. Receive the episode',

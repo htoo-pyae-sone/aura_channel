@@ -56,11 +56,22 @@ export function makeFixture() {
         ],
       });
     }
+    const batches = [];
+    for (let from = 1; from <= eps; from += 10) {
+      const to = Math.min(from + 9, eps);
+      batches.push({
+        from,
+        to,
+        quality: '1080p',
+        link: `SAMPLEBATCH${s}-${from}`,
+      });
+    }
     // One file per season; the season number lives in the filename.
     const seasonFile = {
       title: `Season ${s}`,
       status: ongoing ? 'Ongoing' : 'Completed',
       totalEpisodes: ongoing ? '12+' : eps,
+      batches,
       episodes,
     };
     writeFileSync(

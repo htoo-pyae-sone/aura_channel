@@ -8,22 +8,28 @@ import { getEpisodeData } from '../../lib/episode-data';
 import type { Season } from '../../lib/episode-schema';
 import { synopsisDescription } from '../../lib/description';
 
-// One route per (title × season × page). Episodes are paginated at build time
-// into real URLs, so a 1000-episode season ships ~EP_PAGE_SIZE rows per page
-// instead of the whole list — and every page (tabs, Prev/Next, jump) works
-// without JavaScript, because it's all server-rendered HTML.
+// One route per (title × season × page), plus one batch-download route per
+// season that has pre-built Telegram batch codes. Episodes are paginated at
+// build time into real URLs, so a 1000-episode season ships ~EP_PAGE_SIZE rows
+// per page instead of the whole list — and every page (tabs, Prev/Next, jump)
+// works without JavaScript, because it's all server-rendered HTML.
 //
 // URL shapes:
 //   /anime/<id>/            → first season, first page
 //   /anime/<id>/s<N>/       → season N, first page   (N ≥ 2; season 1 is bare)
 //   /anime/<id>/s<N>/<P>/   → season N, page P
 //   /anime/<id>/<P>/        → single-season title, page P  (P ≥ 2)
+//   /anime/<id>/batches/    → first season's batch downloads
+//   /anime/<id>/s<N>/batches/ → season N's batch downloads
+type DetailView = 'episodes' | 'batches';
+
 type PathProps = {
   entry: CollectionEntry<'anime'>;
   seasonList: Season[];
   seasonNum: number;
   page: number;
   totalPages: number;
+  view: DetailView;
 };
 
 export async function getStaticPaths() {
@@ -56,13 +62,35 @@ export async function getStaticPaths() {
     for (const s of seasonList) {
       const eps = s.episodes ?? [];
       const pages = Math.max(1, Math.ceil(eps.length / EP_PAGE_SIZE));
+      const seasonSegs = [entry.id];
+      if (multi && s.season !== 1) seasonSegs.push(`s${s.season}`);
       for (let p = 1; p <= pages; p++) {
-        const segs = [entry.id];
-        if (multi && s.season !== 1) segs.push(`s${s.season}`);
+        const segs = [...seasonSegs];
         if (p > 1) segs.push(String(p));
         paths.push({
           params: { slug: segs.join('/') },
-          props: { entry, seasonList, seasonNum: s.season, page: p, totalPages: pages },
+          props: {
+            entry,
+            seasonList,
+            seasonNum: s.season,
+            page: p,
+            totalPages: pages,
+            view: 'episodes',
+          },
+        });
+      }
+
+      if (s.batches?.length) {
+        paths.push({
+          params: { slug: [...seasonSegs, 'batches'].join('/') },
+          props: {
+            entry,
+            seasonList,
+            seasonNum: s.season,
+            page: 1,
+            totalPages: 1,
+            view: 'batches',
+          },
         });
       }
     }
@@ -70,7 +98,7 @@ export async function getStaticPaths() {
   return paths;
 }
 
-const { entry, seasonList, seasonNum, page, totalPages } = Astro.props;
+const { entry, seasonList, seasonNum, page, totalPages, view } = Astro.props;
 const { Content } = await render(entry);
 const {
   title,
@@ -91,7 +119,13 @@ const allEpisodes = current.episodes ?? [];
 const start = (page - 1) * EP_PAGE_SIZE;
 const pageEpisodes = allEpisodes.slice(start, start + EP_PAGE_SIZE);
 const hasEpisodes = allEpisodes.length > 0;
+const hasBatches = (current.batches?.length ?? 0) > 0;
+const isBatchPage = view === 'batches';
 const srcLabel = (n: number) => `${n} source${n === 1 ? '' : 's'}`;
+const episodeRange = (from: number, to: number) => {
+  const padded = (n: number) => String(n).padStart(2, '0');
+  return `EP ${padded(from)}–${padded(to)}`;
+};
 
 // Poster badge: latest season's count wins when seasons exist.
 const latestSeason = seasonList[seasonList.length - 1] ?? null;
@@ -116,6 +150,13 @@ const seasonBadge = (() => {
 const base = `/anime/${entry.id}/`;
 const seasonUrl = (n: number) => (multi && n !== 1 ? `${base}s${n}/` : base);
 const pageUrl = (n: number, p: number) => (p <= 1 ? seasonUrl(n) : `${seasonUrl(n)}${p}/`);
+const batchUrl = (n: number) => `${seasonUrl(n)}batches/`;
+const seasonViewUrl = (n: number, target: DetailView) => {
+  const targetSeason = seasonList.find((s) => s.season === n);
+  return target === 'batches' && targetSeason?.batches?.length
+    ? batchUrl(n)
+    : seasonUrl(n);
+};
 // Prev/next carry an #episodes anchor so a page change keeps the view on the
 // episode list instead of jumping to the top of the page (see the script).
 const prevUrl = page > 1 ? pageUrl(seasonNum, page - 1) + '#episodes' : null;
@@ -269,7 +310,7 @@ const seriesSchema = {
       })();
     </script>
 
-      {hasEpisodes && (
+      {(hasEpisodes || hasBatches) && (
         <div class="episodes-section" id="episodes">
           <div class="episodes-head">
             <h3 class="episodes-heading">Episodes & Downloads</h3>
@@ -278,12 +319,12 @@ const seriesSchema = {
           {/* Season tabs are real links now — clicking one navigates to that
               season's first page, so it works without JS and survives reloads.
               The active season is marked aria-current="page". */}
-          <div class={`season-row${multi ? '' : ' is-solo'}`}>
+          <div class={`season-row${multi ? '' : ' is-solo'}${isBatchPage ? ' is-batch' : ''}`}>
             {multi && (
               <nav class="season-tabs" aria-label="Seasons">
                 {seasonList.map((s) => (
                   <a
-                    href={pageUrl(s.season, 1) + '#episodes'}
+                    href={seasonViewUrl(s.season, isBatchPage ? 'batches' : 'episodes') + '#episodes'}
                     class="season-tab"
                     aria-current={s.season === seasonNum ? 'page' : undefined}
                   >S{s.season}</a>
@@ -291,18 +332,20 @@ const seriesSchema = {
               </nav>
             )}
 
-            <span class="ep-jump">
-              <label for="ep-jump-input">EP</label>
-              <input
-                id="ep-jump-input"
-                class="ep-jump-input"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                min="1"
-                placeholder="e.g. 5"
-                aria-label="Jump to episode number in the current season"
-              />
-            </span>
+            {!isBatchPage && (
+              <span class="ep-jump">
+                <label for="ep-jump-input">EP</label>
+                <input
+                  id="ep-jump-input"
+                  class="ep-jump-input"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  min="1"
+                  placeholder="e.g. 5"
+                  aria-label="Jump to episode number in the current season"
+                />
+              </span>
+            )}
 
             {/* Status + episode-count pills for the current season. */}
             <div class="season-meta">
@@ -316,72 +359,125 @@ const seriesSchema = {
             </div>
           </div>
 
-          <p class="ep-jump-msg" id="ep-jump-msg" role="status" hidden></p>
+          <nav class="download-modes" aria-label="Download type">
+            <a
+              href={seasonUrl(seasonNum) + '#episodes'}
+              class="download-mode"
+              aria-current={!isBatchPage ? 'page' : undefined}
+            >Episodes</a>
+            {hasBatches && (
+              <a
+                href={batchUrl(seasonNum) + '#episodes'}
+                class="download-mode"
+                aria-current={isBatchPage ? 'page' : undefined}
+              >Batch downloads</a>
+            )}
+          </nav>
 
-          {/* Only this page's slice of episodes is in the HTML. */}
-          <div class="episodes-list">
-            {pageEpisodes.map((episode) => (
-              <details class="ep-accordion" data-ep={episode.ep}>
-                <summary class="ep-header">
-                  <div class="ep-title-wrap">
-                    <span class="ep-number">EP {String(episode.ep).padStart(2, '0')}</span>
-                    {episode.title && <span class="ep-title">{episode.title}</span>}
-                    <span class="ep-sources">{srcLabel(episode.downloads.length)}</span>
-                  </div>
-                  <div class="ep-chevron">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                  </div>
-                </summary>
+          {isBatchPage ? (
+            <div class="batch-panel">
+              <div class="batch-list">
+                {current.batches?.map((batch) => (
+                  <a
+                    href={downloadUrl(batch.link)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="batch-row"
+                  >
+                    <span class="batch-icon" aria-hidden="true">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                      </svg>
+                    </span>
+                    <span class="batch-info">
+                      <span class="batch-range">{episodeRange(batch.from, batch.to)}</span>
+                      {batch.quality && <span class="batch-quality">{batch.quality}</span>}
+                    </span>
+                    <span class="batch-action">Bot</span>
+                    <svg class="dl-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : hasEpisodes ? (
+            <>
+              <p class="ep-jump-msg" id="ep-jump-msg" role="status" hidden></p>
 
-                <div class="dl-table">
-                  <div class="dl-rows">
-                    {episode.downloads.map((dl) => (
-                      <a href={downloadUrl(dl.link)} target="_blank" rel="noopener noreferrer" class="dl-row">
-                        <span class="dl-info">
-                          <svg class="dl-icon-front" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                          </svg>
-                          <span class="dl-source">{dl.source}</span>
-                          <span class="badge badge-quality">{dl.format.toUpperCase()}</span>
-                          <span class="badge badge-quality">{dl.quality}</span>
-                          <span class="badge badge-size">{dl.size}</span>
-                        </span>
-                        <svg class="dl-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                          <line x1="5" y1="12" x2="19" y2="12"></line>
-                          <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            ))}
-          </div>
+              {/* Only this page's slice of episodes is in the HTML. */}
+              <div class="episodes-list">
+                {pageEpisodes.map((episode) => (
+                  <details class="ep-accordion" data-ep={episode.ep}>
+                    <summary class="ep-header">
+                      <div class="ep-title-wrap">
+                        <span class="ep-number">EP {String(episode.ep).padStart(2, '0')}</span>
+                        {episode.title && <span class="ep-title">{episode.title}</span>}
+                        <span class="ep-sources">{srcLabel(episode.downloads.length)}</span>
+                      </div>
+                      <div class="ep-chevron">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </div>
+                    </summary>
 
-          {/* Real pagination: Prev/Next are links to the adjacent pages, so they
-              work without JS. The count always shows where you are. */}
-          <div class="ep-pager ep-pager-bottom">
-            <p class="ep-count">
-              Showing {start + 1}–{start + pageEpisodes.length} of {allEpisodes.length}
-            </p>
-            {(prevUrl || nextUrl) && (
-              <div class="ep-pager-controls">
-                {prevUrl && (
-                  <a href={prevUrl} class="ep-page-btn" rel="prev" aria-label="Previous page">&lt;</a>
-                )}
-                {nextUrl && (
-                  <a href={nextUrl} class="ep-page-btn" rel="next" aria-label="Next page">&gt;</a>
+                    <div class="dl-table">
+                      <div class="dl-rows">
+                        {episode.downloads.map((dl) => (
+                          <a href={downloadUrl(dl.link)} target="_blank" rel="noopener noreferrer" class="dl-row">
+                            <span class="dl-info">
+                              <svg class="dl-icon-front" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                              </svg>
+                              <span class="badge badge-quality">{dl.format.toUpperCase()}</span>
+                              <span class="badge badge-quality">{dl.quality}</span>
+                              <span class="badge badge-size">{dl.size}</span>
+                            </span>
+                            <span class="dl-action">{dl.source}</span>
+                            <svg class="dl-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <line x1="5" y1="12" x2="19" y2="12"></line>
+                              <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </div>
+
+              {/* Real pagination: Prev/Next are links to the adjacent pages, so they
+                  work without JS. The count always shows where you are. */}
+              <div class="ep-pager ep-pager-bottom">
+                <p class="ep-count">
+                  Showing {start + 1}–{start + pageEpisodes.length} of {allEpisodes.length}
+                </p>
+                {(prevUrl || nextUrl) && (
+                  <div class="ep-pager-controls">
+                    {prevUrl && (
+                      <a href={prevUrl} class="ep-page-btn" rel="prev" aria-label="Previous page">&lt;</a>
+                    )}
+                    {nextUrl && (
+                      <a href={nextUrl} class="ep-page-btn" rel="next" aria-label="Next page">&gt;</a>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <p class="batch-empty">
+              No individual episodes are available yet. Use the batch download options above.
+            </p>
+          )}
         </div>
       )}
 
       <p class="notice">
-        {hasEpisodes ? (
+        {hasEpisodes || hasBatches ? (
           <>
             <span class="notice-label">Note:</span>{' '}
             <span class="notice-term">Telegram Bot</span> not opening? Turn on your{' '}
