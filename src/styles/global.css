@@ -2188,6 +2188,149 @@ html.pending-filter #catalog-grid {
   display: none;
 }
 
+/* Episodes and batch ranges are separate modes so a long season never makes
+   the individual episode list compete with its pre-built Telegram batches. */
+.download-modes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+  padding: 0.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.download-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.42rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.download-mode:hover {
+  color: var(--text);
+}
+
+.download-mode[aria-current='page'] {
+  color: var(--text);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: rgba(var(--accent-rgb), 0.16);
+}
+
+.download-mode:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.batch-panel {
+  min-width: 0;
+}
+
+.batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.batch-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-raised);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.batch-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-muted);
+}
+
+.batch-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.batch-range {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 4.8rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.batch-quality {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.batch-action {
+  flex: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.batch-row:hover {
+  border-color: rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+.batch-row:hover .batch-icon,
+.batch-row:hover .batch-action,
+.batch-row:hover .dl-arrow {
+  color: var(--accent);
+}
+
+.batch-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.batch-empty {
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text-muted);
+  background: var(--bg-raised);
+}
+
 /* Per-season header: name + status badge + total. */
 .season-header {
   display: flex;
@@ -2658,7 +2801,7 @@ html.pending-filter #catalog-grid {
 
   /* Text violet, not accent: #8b5cf6 is too dark for 13.6px copy on this
      background — --label (#a78bfa) keeps it readable while matching. */
-  .dl-row:hover .dl-source {
+  .dl-row:hover .dl-action {
     color: var(--label);
   }
 
@@ -2686,17 +2829,12 @@ html.pending-filter #catalog-grid {
   transition: color 0.15s ease, transform 0.15s ease;
 }
 
-.dl-source {
+.dl-action {
+  flex: none;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  /* The row's own "name": cream like the EP title at rest, NO box (the
-     MP4/1080p badges wear those). Weight sits with the badges (500) so size
-     + mono — not boldness — carry the hierarchy. Violet only appears on
-     hover, joining the icon and arrow. */
-  color: var(--text);
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  text-align: left;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
   transition: color 0.15s ease;
 }
 

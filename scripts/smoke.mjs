@@ -403,6 +403,39 @@ async function runChecks(browser) {
     return `S1 y=${before} → S2 y=${after}`;
   });
 
+  // --- 5c. batch downloads -------------------------------------------------
+  await check('batch page keeps ranges separate from individual episodes', async () => {
+    const p = await open(browser, `${SAMPLE}batches/`, {
+      viewport: { width: 390, height: 844 },
+    });
+    const r = await p.evaluate(() => ({
+      current: document.querySelector('.download-mode[aria-current="page"]')?.textContent?.trim(),
+      rows: [...document.querySelectorAll('.batch-row')].map((row) => ({
+        label: row.querySelector('.batch-range')?.textContent?.trim(),
+        href: row.getAttribute('href') || '',
+      })),
+      actions: [...document.querySelectorAll('.batch-action')].map((action) =>
+        action.textContent?.trim()
+      ),
+      episodes: document.querySelectorAll('.ep-accordion').length,
+    }));
+    await p.close();
+    assert(r.current === 'Batch downloads', `active mode=${r.current}`);
+    assert(r.episodes === 0, `individual episodes leaked onto batch page (${r.episodes})`);
+    assert(r.rows.length === 2, `expected 2 ranges, got ${r.rows.length}`);
+    assert(r.rows[0].label === 'EP 01–10', `first label=${r.rows[0].label}`);
+    assert(r.rows[1].label === 'EP 11–12', `second label=${r.rows[1].label}`);
+    assert(
+      r.rows.every((row) => row.href.startsWith('https://t.me/anixsubsbot?start=')),
+      'batch links do not point at the Telegram bot'
+    );
+    assert(
+      r.actions.length > 0 && r.actions.every((action) => action === 'Bot'),
+      'batch action is not labelled Bot'
+    );
+    return `${r.rows.map((row) => row.label).join(', ')} via Telegram`;
+  });
+
   // --- 6. deep links -------------------------------------------------------
   // Deep links narrow the catalog but must NOT yank the filter panel open —
   // the standing chip row names what's active instead.
